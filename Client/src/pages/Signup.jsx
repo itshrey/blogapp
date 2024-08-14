@@ -37,10 +37,12 @@ export default function Signup() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
+        
     
         // Check if the response is not empty and is in JSON format
         
-        const data = await res.json(); // Attempt to parse JSON
+        const data = await res.json();
+        // Attempt to parse JSON
         if(data.success===false){
           return setErrorMessage(data.message);
         }
