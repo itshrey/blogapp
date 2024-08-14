@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Project from './pages/Project';
 import About from './pages/About';
 import Header from './components/Header';
+import FooterCom from './components/Footer';
 export default function App() {
   return (
     <BrowserRouter>
@@ -20,6 +21,7 @@ export default function App() {
         <Route path='/about' element={<About/>} />
 
       </Routes>
+      <FooterCom/>
     </BrowserRouter>
   )
 }
