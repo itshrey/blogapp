@@ -1,8 +1,8 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import userReducer from './user/userSlice';
-import { persistReducer } from 'redux-persist';
+import { persistReducer,persistStore } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import persistStore from 'redux-persist/es/persistStore';
+
 
 // Combine reducers if you have more than one
 const rootReducer = combineReducers({
@@ -29,4 +29,4 @@ export const store = configureStore({
 });
 
 // Exporting the persistor which will be used in your app entry point
-export const persistor = persistStore(store);
+export const persistor= persistStore(store);
