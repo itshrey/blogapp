@@ -24,7 +24,10 @@ export default function Oauth() {
         const provider = new GoogleAuthProvider();
         
         // Force the account selection prompt to appear
-        provider.setCustomParameters({ prompt: 'select_account' });
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+
         
         try {
             // Open a popup for Google sign-in and wait for the user to complete the process

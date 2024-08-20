@@ -49,7 +49,7 @@ export const signin = async(req,res,next)=>{
         }
         const token =jwt.sign(
             {
-                id: validUser._id
+                id: validUser._id, isAdmin: validUser.isAdmin
             },process.env.JWT_SECRET,
         )
 
@@ -70,7 +70,7 @@ export const google = async (req, res, next) => {
         let user = await User.findOne({ email });
         if (user) {
             // User already exists, sign a token and send it back
-            const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+            const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET);
             const { password, ...rest } = user._doc; // Exclude the password from the response
             res.status(200)
                 .cookie('access_token', token, { httpOnly: true })
