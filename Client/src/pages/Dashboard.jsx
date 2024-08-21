@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom';
 import DashSidebar from '../components/DashSidebar';
 import DashProfile from '../components/DashProfile';
+import DashPosts from '../components/DashPosts';
 
 export default function Dashboard() {
   const location = useLocation(); // Access the current location object, which includes the URL and its parts.
@@ -28,8 +29,10 @@ export default function Dashboard() {
         <DashSidebar />
       </div>
       <div className='w-full'>
-        {/**profile */}
+        {/**profile */} 
         {tab==='profile' && <DashProfile />}
+        {/**posts*/}
+        {tab==='posts' && <DashPosts />}
       </div>
 
     </div> // Simple JSX to render the Dashboard component.
