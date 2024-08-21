@@ -24,7 +24,7 @@ export default function CreatePost() {
                 </Button> 
 
             </div>
-            <ReactQuill theme='snow' placeholder='Write here...' className='h-72 mb-12' required />
+            <ReactQuill theme='snow' placeholder='Write here...' className='h-72 mb-12' required id='content'/>
             <Button type='submit' gradientDuoTone='purpleToPink'>
                 Publish
             </Button>
