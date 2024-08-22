@@ -29,7 +29,7 @@ export default function DashPosts() {
       fetchPosts();
     }
   },[currentUser._id]);
-  const handleDeletePost = async (e)=>{
+  const handleDeletePost = async ()=>{
     setShowModal(false);
     try {
       const res= await fetch(`/api/post/deletepost/${postIdToDelete}/${currentUser._id}`,{
@@ -39,10 +39,10 @@ export default function DashPosts() {
       if(!res.ok){
         console.log(data.message)
       }else{
-        dispatch(deleteUserSuccess(data));
+        setUserPosts((prev)=>prev.filter((post)=>post._id !== postIdToDelete))
       }
     } catch (error) {
-      setUserPosts((prev)=>prev.filter((post)=>post._id !== postIdToDelete))
+      console.log(data.message)
     };
   } 
 
