@@ -8,6 +8,7 @@ export default function CommentSection({postId}) {
     const [comment,setComment]= useState('');
     const [comments,setComments]= useState([]);
     const [commentError,setCommentError]= useState(null);
+   
     const navigate = useNavigate();
     const handleSubmit = async(e)=>{
         try { 
@@ -74,7 +75,11 @@ export default function CommentSection({postId}) {
             console.log(error.message);
         }
     }
-
+   const handleEdit = async(comment,editedComment)=>{
+        setComments(comments.map((c)=>
+            c._id===comment._id ? {...c,content: editedComment} : c
+        ));
+   };
   return (
     <div className='max-w-2xl mx-auto w-full p-3'>{currentUser ? (
         <div className=' flex items-center gap-1 my-5 text-gray-500 text-sm'>
@@ -116,7 +121,7 @@ export default function CommentSection({postId}) {
                         </div>
                         {
                             comments.map((comment) =>(
-                                <Comment key={comment._id} comment={comment} onLike={handleLike}/>
+                                <Comment key={comment._id} comment={comment} onLike={handleLike} onEdit={handleEdit}/>
                             ))
                         }
                     </>
