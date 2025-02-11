@@ -50,7 +50,11 @@ export default function AdminSignup() {
     if (!formData.username || !formData.email || !formData.password || !otp) {
       return setErrorMessage("Please fill all the fields and enter OTP.");
     }
-
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[\W_]).{7,15}$/;
+    
+      if (!passwordRegex.test(formData.password)) {
+        return setErrorMessage('Password must be 7-15 characters long, contain at least one uppercase letter, and one special character.');
+      }
     try {
       setLoading(true);
       setErrorMessage(null);
