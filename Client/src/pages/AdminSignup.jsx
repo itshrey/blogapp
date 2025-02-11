@@ -67,7 +67,7 @@ export default function AdminSignup() {
       if (!res.ok) return setErrorMessage(data.message);
 
       toast.success("Admin registered successfully!");
-      navigate("/admin-dashboard");
+      navigate("/sign-in");
     } catch (error) {
       setErrorMessage("Signup failed.");
       setLoading(false);
