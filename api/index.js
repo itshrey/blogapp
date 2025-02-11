@@ -1,36 +1,51 @@
-import express from 'express';//to support this add "type":"module" in package.json
+import express from 'express'; // Enable ES modules by adding "type": "module" in package.json
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import userRoutes from './routes/user.route.js';
+import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import authRoutes from './routes/auth.route.js'
-import postRoutes from './routes/post.route.js'
-import commentRoutes from './routes/comment.route.js'
-dotenv.config();
-mongoose.connect(process.env.MONGO)
-.then(()=>{console.log("Mongo db is connected")})
-.catch((err)=>{
-    console.log(err);
-})
-const app=express();
-app.use(express.json());
-app.use(cookieParser());
 
-app.listen(3000,()=>{
-    console.log("Server is running on port 3000 ")
+import userRoutes from './routes/user.route.js';
+import authRoutes from './routes/auth.route.js';
+import postRoutes from './routes/post.route.js';
+import commentRoutes from './routes/comment.route.js';
+
+dotenv.config();
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO)
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.log("MongoDB Connection Error:", err));
+
+const app = express();
+
+// Enable CORS (Allow frontend requests)
+app.use(cors({
+  origin: "http://localhost:5173", // Your frontend URL
+  credentials: true, // Allow cookies
+}));
+
+app.use(express.json()); // Parse JSON data
+app.use(cookieParser()); // Parse cookies
+
+// API Routes
+app.use('/api/user', userRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/post', postRoutes);
+app.use('/api/comment', commentRoutes);
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+  res.status(statusCode).json({
+    success: false,
+    statusCode,
+    message,
+  });
 });
 
-app.use('/api/user',userRoutes);
-app.use('/api/auth',authRoutes);
-app.use('/api/post',postRoutes);
-app.use('/api/comment',commentRoutes);
-
-app.use((err,req,res,next)=>{
-    const statusCode=err.statusCode||500;
-    const message=err.message|| 'Internal Server Error';
-    res.status(statusCode).json({
-        success:false,
-        statusCode,
-        message,
-    });
+// Start Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });

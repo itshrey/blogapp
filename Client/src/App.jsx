@@ -14,6 +14,8 @@ import CreatePost from './pages/CreatePost';
 import UpdatePost from './pages/UpdatePost';
 import Postpage from './pages/Postpage';
 import ScrollToTop from './components/ScrollTotop';
+import Search from './pages/Search';
+import AdminSignup from './pages/AdminSignup';
 export default function App() {
   return (
     <BrowserRouter>
@@ -25,6 +27,8 @@ export default function App() {
         <Route path='/sign-in' element={<Signin/>} />
         
         <Route path='/sign-up' element={<Signup/>} />
+        <Route path='/admin/sign-up' element={<AdminSignup/>} />
+        <Route path='/search' element={<Search/>} />
         <Route element={<PrivateRoute/>}>
           <Route path='/dashboard' element={<Dashboard/>} />
         </Route>

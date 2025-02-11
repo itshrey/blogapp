@@ -28,36 +28,46 @@ export default function Signup() {
 
     const submitHandler = async (e) => {
       e.preventDefault();
-      if(!formData.username||!formData.email||!formData.password){
-        return setErrorMessage('Please fill all the fields.')
+      
+      if (!formData.username || !formData.email || !formData.password) {
+        return setErrorMessage('Please fill all the fields.');
       }
+    
+      // Password validation regex: 7-15 characters, 1 uppercase, 1 special character
+      const passwordRegex = /^(?=.*[A-Z])(?=.*[\W_]).{7,15}$/;
+    
+      if (!passwordRegex.test(formData.password)) {
+        return setErrorMessage('Password must be 7-15 characters long, contain at least one uppercase letter, and one special character.');
+      }
+    
       try {
         setLoading(true);
         setErrorMessage(null);
+        
         const res = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
-        
     
-        // Check if the response is not empty and is in JSON format
-        
         const data = await res.json();
-        // Attempt to parse JSON
-        if(data.success===false){
+        
+        if (data.success === false) {
           return setErrorMessage(data.message);
         }
+    
         setLoading(false);
-        if(res.ok){
+        
+        if (res.ok) {
           navigate('/sign-in');
         }
-        
+    
       } catch (error) {
         setErrorMessage(error.message);
         setLoading(false);
       }
     };
+    
     
   return (
     <div className='min-h-screen mt-20'>
