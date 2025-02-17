@@ -84,10 +84,13 @@ export default function CreatePost() {
                 <TextInput type='text' placeholder='Title' required id='title' 
                 className='flex-1' onChange={(e)=>{setFormData({...formData,title:e.target.value})}} />
                 <Select onChange={(e)=>{setFormData({...formData,category:e.target.value})}}>
-                    <option value="uncategorized">Select a category</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="reactjs">React.js</option>
-                    <option value="nextjs">Next.js</option>
+                <option value='uncategorized'>Uncategorized</option>
+                <option value='reactjs'>React.js</option>
+                <option value='nextjs'>Next.js</option>
+                <option value='javascript'>JavaScript</option>
+                <option value='politics'>Politics</option>
+                <option value='cricket'>Cricket</option>
+                <option value='movies'>Movies</option>
                 </Select>
             </div>
             <div className='flex gap-4 items-center justify-between border-4 border-teal-500 border-dotted p-3'>

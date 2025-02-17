@@ -42,11 +42,11 @@ export const adminSignup = async (req, res, next) => {
     }
 
     try {
-        const hashedPassword = bcryptjs.hashSync(password, 10);
+        
         const newAdmin = new User({
             username,
             email,
-            password: hashedPassword,
+            password,
             isAdmin: true, // Admin flag
         });
 
@@ -61,27 +61,46 @@ export const adminSignup = async (req, res, next) => {
 };
 
 // 3️⃣ User Signup (Normal)
+
 export const signup = async (req, res, next) => {
-    const { username, email, password } = req.body;
+  const { username, email, password } = req.body;
 
-    if (!username || !email || !password) {
-        return next(errorHandler(400, "All fields are required"));
-    }
+  // Check if all fields are provided
+  if (!username || !email || !password) {
+    return next(errorHandler(400, "All fields are required"));
+  }
 
-    try {
-        const hashPassword = bcryptjs.hashSync(password, 10);
-        const newUser = new User({
-            username,
-            email,
-            password: hashPassword,
-        });
+  // Validate password (you can use the same regex from your schema)
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[\W_]).{7,15}$/;
+  if (!passwordRegex.test(password)) {
+    return next(
+      errorHandler(
+        400,
+        "Password must be 7-15 characters long, contain at least one uppercase letter, and one special character."
+      )
+    );
+  }
 
-        await newUser.save();
-        res.json({ message: "Signup successful" });
-    } catch (error) {
-        next(error);
-    }
+  try {
+    // Hash the passwor
+
+    // Create new user
+    const newUser = new User({
+      username,
+      email,
+      password, // Ensure the password field exists in the model
+    });
+
+    // Save the user to the database
+    await newUser.save();
+
+    // Respond with success message
+    res.json({ message: "Signup successful" });
+  } catch (error) {
+    next(error);
+  }
 };
+
 
 // 4️⃣ User Signin
 export const signin = async (req, res, next) => {
@@ -94,8 +113,9 @@ export const signin = async (req, res, next) => {
     try {
         const validUser = await User.findOne({ email });
         if (!validUser) return next(errorHandler(404, "User not found"));
-
-        const validPassword = bcryptjs.compareSync(password, validUser.password);
+        console.log("Stored password hash:", validUser.password);
+        const validPassword = await bcryptjs.compare(password, validUser.password);
+        console.log(validPassword);
         if (!validPassword) return next(errorHandler(400, "Incorrect Password"));
 
         const token = jwt.sign({ id: validUser._id, isAdmin: validUser.isAdmin }, process.env.JWT_SECRET);
@@ -118,11 +138,11 @@ export const google = async (req, res, next) => {
             res.status(200).cookie("access_token", token, { httpOnly: true }).json(rest);
         } else {
             const generatedPassword = Math.random().toString(36).slice(-8);
-            const hashPassword = bcryptjs.hashSync(generatedPassword, 10);
+            
             const newUser = new User({
                 username: name.toLowerCase().split(" ").join("") + Math.random().toString(9).slice(-4),
                 email,
-                password: hashPassword,
+                password,
                 profilePicture: googlePhotoUrl,
             });
             await newUser.save();

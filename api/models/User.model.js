@@ -27,13 +27,6 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      validate: {
-        validator: function (value) {
-          return /^(?=.*[A-Z])(?=.*[\W_]).{7,15}$/.test(value);
-        },
-        message:
-          "Password must be 7-15 characters long, contain at least one uppercase letter, and one special character.",
-      },
     },
     profilePicture: {
       type: String,
@@ -55,11 +48,14 @@ userSchema.pre("save", async function (next) {
   try {
     const salt = await bcryptjs.genSalt(10);
     this.password = await bcryptjs.hash(this.password, salt);
+    console.log("Hashed Password:", this.password); // Log the hashed password
     next();
   } catch (error) {
     next(error);
   }
 });
+
+
 
 const User = mongoose.model("User", userSchema);
 export default User;
