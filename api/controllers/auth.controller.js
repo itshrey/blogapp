@@ -127,7 +127,6 @@ export const signin = async (req, res, next) => {
     }
 };
 
-// 5️⃣ Google Authentication
 export const google = async (req, res, next) => {
     const { email, name, googlePhotoUrl } = req.body;
     try {
@@ -137,17 +136,38 @@ export const google = async (req, res, next) => {
             const { password, ...rest } = user._doc;
             res.status(200).cookie("access_token", token, { httpOnly: true }).json(rest);
         } else {
-            const generatedPassword = Math.random().toString(36).slice(-8);
-            
+            // Function to generate a strong password
+            const generateStrongPassword = () => {
+                const length = Math.floor(Math.random() * (15 - 7 + 1)) + 7; // Random length between 7 and 15
+                const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                const lowercase = "abcdefghijklmnopqrstuvwxyz";
+                const numbers = "0123456789";
+                const specialChars = "!@#$%^&*()_+-=[]{}|;:',.<>?/`~";
+
+                let password = 
+                    uppercase[Math.floor(Math.random() * uppercase.length)] + // Ensure at least one uppercase
+                    specialChars[Math.floor(Math.random() * specialChars.length)]; // Ensure at least one special character
+
+                const allChars = uppercase + lowercase + numbers + specialChars;
+
+                for (let i = 2; i < length; i++) {
+                    password += allChars[Math.floor(Math.random() * allChars.length)];
+                }
+
+                return password.split('').sort(() => 0.5 - Math.random()).join(''); // Shuffle password
+            };
+
+            const generatedPassword = generateStrongPassword(); // ✅ Generate a password // ✅ Hash the password
+
             const newUser = new User({
                 username: name.toLowerCase().split(" ").join("") + Math.random().toString(9).slice(-4),
                 email,
-                password,
+                password: generatedPassword,  // ✅ Store hashed password
                 profilePicture: googlePhotoUrl,
             });
             await newUser.save();
 
-            const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET);
+            const token = jwt.sign({ id: newUser._id, isAdmin: false }, process.env.JWT_SECRET);
             const { password, ...rest } = newUser._doc;
             res.status(200).cookie("access_token", token, { httpOnly: true }).json(rest);
         }
@@ -155,3 +175,4 @@ export const google = async (req, res, next) => {
         next(error);
     }
 };
+

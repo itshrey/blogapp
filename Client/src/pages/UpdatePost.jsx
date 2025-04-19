@@ -14,6 +14,7 @@ import { useSelector } from 'react-redux';
 
 export default function UpdatePost() {
     const {postId} = useParams();
+    console.log("postId:", postId);
     const navigate = useNavigate();
     const [file,setFile] = useState(null);
     const [imageUploadProgress,setImageUploadProgress]=useState(null);
@@ -29,27 +30,31 @@ export default function UpdatePost() {
     const [publishError,setPublishError]=useState(null);
     
     useEffect(() => {
-        const fetchPost = async () => {
-          try {
-            const res=await fetch(`/api/post/getPosts?postId=${postId}`)
-            const data = await res.json();
-       
-            if (!res.ok) {
-              console.log(data.message);
-              setPublishError(data.message);
-            } else {
-              setPublishError(null);
-              setFormData(data.posts[0]);
-            }
-          } catch (error) {
-            console.log(error.message);
+      const fetchPost = async () => {
+        try {
+          const res = await fetch(`/api/post/getPosts?postId=${postId}`);
+          const data = await res.json();
+          
+          if (!res.ok) {
+            console.log(data.message);
+            setPublishError(data.message);
+          } else {
+            setPublishError(null);
+            console.log(data.posts[0]);
+            setFormData(data.posts[0]);
+            console.log("Fetched post data:", data.posts[0].title);
+            console.log(formData);
           }
-        };
-      
-        if (postId) {
-          fetchPost();
+        } catch (error) {
+          console.log(error.message);
         }
-      }, [postId]);
+      };
+    
+      if (postId) {
+        fetchPost();
+      }
+    }, [postId]);
+    
       
 
     const handleImageUpload=async()=>{
@@ -89,8 +94,11 @@ export default function UpdatePost() {
     }
     const handleSubmit= async (e)=>{
         e.preventDefault() ;
+        console.log("formData._id:", postId);
+        console.log("currentUser._id:", currentUser._id);
+
         try{
-         const res=await fetch(`/api/post/updatepost/${formData._id}/${currentUser._id}`,{
+         const res=await fetch(`/api/post/updatepost/${postId}/${currentUser._id}`,{
            method:'PUT',
            headers:{
              'Content-Type':'application/json',

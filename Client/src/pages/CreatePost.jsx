@@ -53,29 +53,41 @@ export default function CreatePost() {
             setImageUploadProgress(null);
         }
     }
-    const handleSubmit= async (e)=>{
-        e.preventDefault() ;
-        try{
-         const res=await fetch('/api/post/create',{
-           method:'POST',
-           headers:{
-             'Content-Type':'application/json',
-           },
-           body: JSON.stringify(formData),
-         });
-         const data= await res.json();
-         if(!res.ok){
-           setPublishError(data.message);
-           return;
-         }else{
-          setPublishError(null);
-          navigate(`/post/${data.slug}`)
-         }
-        }catch(error){
-           setPublishError('Something went wrong')
-        }
-     
-       }
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+  
+      // Trim values to remove leading and trailing spaces
+      const title = formData.title?.trim();
+      const content = formData.content?.trim();
+  
+      // Validate title and content (ensure they are not empty or just spaces)
+      if (!title || !content) {
+          setPublishError("Title and content cannot be empty or spaces only");
+          return;
+      }
+  
+      try {
+          const res = await fetch('/api/post/create', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ ...formData, title, content }), // Save trimmed values
+          });
+          const data = await res.json();
+  
+          if (!res.ok) {
+              setPublishError(data.message);
+              return;
+          } else {
+              setPublishError(null);
+              navigate(`/post/${data.slug}`);
+          }
+      } catch (error) {
+          setPublishError("Something went wrong");
+      }
+  };
+  
   return (
     <div className='p-3 max-w-3xl mx-auto min-h-screen'>
         <h1 className='text-center text-3xl my-7 font-semibold'>Create a post</h1>
