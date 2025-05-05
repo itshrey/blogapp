@@ -1,49 +1,86 @@
-import React, { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { Alert, Spinner } from 'flowbite-react';
 import DashSidebar from '../components/DashSidebar';
 import DashProfile from '../components/DashProfile';
 import DashPosts from '../components/DashPosts';
 import DashUsers from '../components/DashUsers';
 import DashComments from '../components/DashComments';
 import DashboardComp from '../components/DashboardComp';
+import MyPosts from '../components/MyPosts'; // Import MyPosts component
 
 export default function Dashboard() {
-  const location = useLocation(); // Access the current location object, which includes the URL and its parts.
-  const [tab, setTab] = useState(''); // State to store the current tab value, initially set to an empty string.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { currentUser } = useSelector(state => state.user);
+  const [tab, setTab] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // The useEffect hook runs when the component mounts or when location.search changes.
     const urlParams = new URLSearchParams(location.search);
-    // Parse the query string from the URL (e.g., '?tab=settings') into an object for easy access to the parameters.
-    
     const tabFromUrl = urlParams.get('tab');
-    // Retrieve the value associated with the 'tab' parameter (e.g., 'settings').
-    
-    if(tabFromUrl){
-      setTab(tabFromUrl);
-    } // Log the retrieved tab value to the console for debugging purposes.
-  }, [location.search]);
-  // The effect will re-run whenever the query string (location.search) changes.
+
+    // Set default tab to profile if none specified
+    if (!tabFromUrl) {
+      navigate('/dashboard?tab=profile', { replace: true });
+      return;
+    }
+
+    // Redirect unauthorized users trying to access admin tabs
+    if (['users', 'comments', 'dash'].includes(tabFromUrl)) {
+      if (!currentUser?.isAdmin) {
+        navigate('/dashboard?tab=profile', { replace: true });
+        return;
+      }
+    }
+
+    // Redirect unverified users trying to access posts
+    if (tabFromUrl === 'posts' && !currentUser?.isVerified && !currentUser?.isAdmin) {
+      navigate('/dashboard?tab=profile', { replace: true });
+      return;
+    }
+
+    setTab(tabFromUrl);
+    setLoading(false);
+  }, [location.search, currentUser, navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Spinner size="xl" />
+      </div>
+    );
+  }
 
   return (
-    <div className='min-h-screen flex flex-col md:flex-row'>
-      <div className='md:w-56'>
-        {/**sidebar */}
+    <div className="min-h-screen flex flex-col md:flex-row">
+      {/* Sidebar */}
+      <div className="md:w-56">
         <DashSidebar />
       </div>
-      <div className='w-full'>
-        {/**profile */} 
-        {tab==='profile' && <DashProfile />}
-        {/**posts*/}
-        {tab==='posts' && <DashPosts />}
-        {/**users*/}
-        {tab==='users' && <DashUsers />}
-        {/**comments*/}
-        {tab==='comments' && <DashComments />}
-        {/**dashboard*/}
-        {tab==='dash' && <DashboardComp />}
-      </div>
 
-    </div> // Simple JSX to render the Dashboard component.
-  )
+      {/* Main Content */}
+      <div className="flex-1 p-4">
+        {!currentUser?.isAdmin && ['users', 'comments', 'dash'].includes(tab) ? (
+          <Alert color="failure">
+            Admin privileges required to access this section
+          </Alert>
+        ) : tab === 'posts' && !currentUser?.isVerified && !currentUser?.isAdmin ? (
+          <Alert color="failure">
+            Account verification required to manage posts
+          </Alert>
+        ) : (
+          <>
+            {tab === 'profile' && <DashProfile />}
+            {tab === 'posts' && (currentUser?.isVerified && !currentUser?.isAdmin) && <MyPosts />}
+            {tab === 'posts' && (currentUser?.isVerified && currentUser?.isAdmin) && <DashPosts />}
+            {tab === 'users' && currentUser?.isAdmin && <DashUsers />}
+            {tab === 'comments' && currentUser?.isAdmin && <DashComments />}
+            {tab === 'dash' && currentUser?.isAdmin && <DashboardComp />}
+          </>
+        )}
+      </div>
+    </div>
+  );
 }

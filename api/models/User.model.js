@@ -7,11 +7,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      lowercase: true, // Ensure username is always lowercase
-      trim: true, // Remove spaces before and after
+      lowercase: true,
+      trim: true,
       validate: {
         validator: function (value) {
-          return /^[a-zA-Z0-9]{7,20}$/.test(value); // Must be 7-20 characters, letters & numbers only
+          return /^[a-zA-Z0-9]{7,20}$/.test(value);
         },
         message: "Username must be 7-20 characters long and contain only letters & numbers.",
       },
@@ -20,9 +20,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      trim: true, // Remove spaces before and after
-      lowercase: true, // Ensure emails are stored in lowercase
-      match: [/.+\@.+\..+/, "Please enter a valid email"], // Basic email format validation
+      trim: true,
+      lowercase: true,
+      match: [/.+\@.+\..+/, "Please enter a valid email"],
     },
     password: {
       type: String,
@@ -37,23 +37,50 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isVerified: {
+      type: Boolean,
+      default: false, // newly added field
+    },
+    loginCount: {
+      type: Number,
+      default: 0,
+    },
+    activityScore: {
+      type: Number,
+      default: 0,
+    },commentCount: {
+      type: Number,
+      default: 0
+    },
+    postCount: {
+      type: Number,
+      default: 0
+    },
+
+    bookmarks: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Post'
+    }]
   },
-  { timestamps: true } // Auto-generate createdAt & updatedAt timestamps
+  { timestamps: true }
 );
 
 // Hash password before saving
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next(); // Skip if password is unchanged
+  if (!this.isModified("password")) return next();
 
   try {
     const salt = await bcryptjs.genSalt(10);
     this.password = await bcryptjs.hash(this.password, salt);
-    console.log("Hashed Password:", this.password); // Log the hashed password
+    console.log("Hashed Password:", this.password);
     next();
   } catch (error) {
     next(error);
   }
 });
+
+
+
 
 
 

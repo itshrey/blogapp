@@ -1,47 +1,65 @@
-import React from 'react'
-import { BrowserRouter,Route,Routes } from 'react-router-dom'
-import OnlyAdminPrivateRoute from './components/OnlyAdminPrivateRoute'
-import Home from './pages/Home';
-import Signin from './pages/Signin';
-import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import Project from './pages/Project';
-import About from './pages/About';
+import React from 'react';
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { store, persistor } from './redux/store';
+import './index.css';
+
+// Components
+import ScrollToTop from './components/ScrollToTop';
 import Header from './components/Header';
 import FooterCom from './components/Footer';
 import PrivateRoute from './components/PrivateRoute';
+import OnlyAdminPrivateRoute from './components/OnlyAdminPrivateRoute';
+import LoadingSpinner from './components/LoadingSpinner';
+// Pages
+import Home from './pages/Home';
+import SignIn from './pages/Signin';
+import SignUp from './pages/Signup';
+import AdminSignUp from './pages/AdminSignup';
+import Dashboard from './pages/Dashboard';
 import CreatePost from './pages/CreatePost';
 import UpdatePost from './pages/UpdatePost';
-import Postpage from './pages/Postpage';
-import ScrollToTop from './components/ScrollTotop';
+import PostPage from './pages/Postpage';
+import Project from './pages/Project';
+import About from './pages/About';
 import Search from './pages/Search';
-import AdminSignup from './pages/AdminSignup';
+
 export default function App() {
   return (
-    <BrowserRouter>
-      <ScrollToTop />
+    <Provider store={store}>
+      <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
+        <BrowserRouter>
+          <ScrollToTop />
+          <Header />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/sign-in" element={<SignIn />} />
+            <Route path="/sign-up" element={<SignUp />} />
+            <Route path="/admin/sign-up" element={<AdminSignUp />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/projects" element={<Project />} />
+            <Route path="/post/:postSlug" element={<PostPage />} />
+            <Route path="/about" element={<About />} />
 
-      <Header />
-      <Routes>
-        <Route path='/' element={<Home/>} />
-        <Route path='/sign-in' element={<Signin/>} />
-        
-        <Route path='/sign-up' element={<Signup/>} />
-        <Route path='/admin/sign-up' element={<AdminSignup/>} />
-        <Route path='/search' element={<Search/>} />
-        <Route element={<PrivateRoute/>}>
-          <Route path='/dashboard' element={<Dashboard/>} />
-        </Route>
-        <Route element={<OnlyAdminPrivateRoute/>}>
-          <Route path='/create-post' element={<CreatePost/>} />
-          <Route path='/update-post/:postId' element={<UpdatePost/>} />
-        </Route>
-        <Route path='/projects' element={<Project/>} />
-        <Route path='/post/:postSlug' element={<Postpage/>} />
-        <Route path='/about' element={<About/>} />
+            {/* Protected Routes */}
+            <Route element={<PrivateRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+            </Route>
 
-      </Routes>
-      <FooterCom/>
-    </BrowserRouter>
-  )
+            {/* Admin-only Routes */}
+            <Route element={<OnlyAdminPrivateRoute />}>
+              <Route path="/create-post" element={<CreatePost />} />
+              <Route path="/update-post/:postId" element={<UpdatePost />} />
+            </Route>
+
+            {/* Catch-all Route */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+          <FooterCom />
+        </BrowserRouter>
+      </PersistGate>
+    </Provider>
+  );
 }

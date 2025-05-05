@@ -1,14 +1,27 @@
 import express from 'express';
-import {getUsers, test} from '../controllers/user.controller.js';
-import { updateUser,deleteUser,signout,getUser } from '../controllers/user.controller.js';
-import { verifyToken } from '../utils/verifyUser.js';
+import {
+  test,
+  updateUser,
+  deleteUser,
+  signout,
+  getUser,
+} from '../controllers/user.controller.js';
+import { verifyToken, adminOnly, verifiedOnly } from '../middleware/auth.middleware.js';
 const router = express.Router();
 
-router.get('/test',test);
-router.delete('/delete/:userId',verifyToken,deleteUser);
-router.put('/update/:userId',verifyToken,updateUser);
-router.post('/signout',signout);
-router.get('/getusers',verifyToken,getUsers);
-router.get('/:userId',getUser);
+// Public route
+router.get('/test', test);
+
+// Authenticated routes
+router.put('/update/:userId', verifyToken, updateUser);
+router.post('/signout', verifyToken, signout);
+router.get('/:userId', verifyToken, getUser);
+
+// Admin-only routes
+
+router.delete('/delete/:userId', verifyToken, adminOnly, deleteUser);
+
+
+
 
 export default router;

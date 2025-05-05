@@ -13,7 +13,7 @@ export default function DashUsers() {
   useEffect(()=>{
     const fetchUsers = async()=>{
       try{
-        const res=await fetch(`api/user/getusers`)
+        const res=await fetch(`api/getUsers`)
         const data = await res.json();
 
         if(res.ok){
@@ -49,7 +49,7 @@ export default function DashUsers() {
   const handleShowMore = async()=>{
     const startIndex = users.length;
     try {
-      const res = await fetch(`/api/user/getusers?startIndex=${startIndex}`);
+      const res = await fetch(`/api/getUsers?startIndex=${startIndex}`);
       const data = await res.json() ;
       if(res.ok){
         setUsers((prev)=>[...prev, ...data.users]);

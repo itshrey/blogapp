@@ -6,7 +6,7 @@ import { HiOutlineExclamationCircle } from 'react-icons/hi';
 import { FaEye, FaEdit, FaTrash, FaChartLine } from 'react-icons/fa';
 import moment from 'moment';
 
-export default function DashPosts() {
+export default function MyPosts() {
   const { currentUser } = useSelector((state) => state.user);
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
@@ -25,11 +25,15 @@ export default function DashPosts() {
   });
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchUserPosts = async () => {
       setLoading(prev => ({ ...prev, posts: true }));
       setError(null);
       try {
-        const res = await fetch('/api/post/getposts?limit=9');
+        const res = await fetch(`/api/post/user/${currentUser._id}?limit=9`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          }
+        });
         const data = await res.json();
 
         if (res.ok) {
@@ -48,7 +52,7 @@ export default function DashPosts() {
 
           setStats(calculatedStats);
         } else {
-          setError(data.message || 'Failed to fetch posts');
+          setError(data.message || 'Failed to fetch your posts');
         }
       } catch (error) {
         setError(error.message);
@@ -57,10 +61,10 @@ export default function DashPosts() {
       }
     };
 
-    if (currentUser.isAdmin) {
-      fetchPosts();
+    if (currentUser?.isVerified) {
+      fetchUserPosts();
     }
-  }, [currentUser._id]);
+  }, [currentUser._id, currentUser?.isVerified]);
 
   const handleDeletePost = async () => {
     setLoading(prev => ({ ...prev, delete: true }));
@@ -90,7 +94,11 @@ export default function DashPosts() {
     const startIndex = posts.length;
     setLoading(prev => ({ ...prev, posts: true }));
     try {
-      const res = await fetch(`/api/post/getposts?startIndex=${startIndex}&limit=9`);
+      const res = await fetch(`/api/post/user/${currentUser._id}?startIndex=${startIndex}&limit=9`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
       const data = await res.json();
       if (res.ok) {
         setPosts(prev => [...prev, ...data.posts]);
@@ -107,18 +115,23 @@ export default function DashPosts() {
     }
   };
 
-  if (!currentUser.isAdmin) {
+  if (!currentUser?.isVerified) {
     return (
-      <div className='flex justify-center items-center h-full'>
-        <p className='text-gray-600 dark:text-gray-400'>
-          Admin privileges required to view posts
+      <div className='flex flex-col justify-center items-center h-96'>
+        <p className='text-gray-600 dark:text-gray-400 text-xl mb-4'>
+          You need to be a verified user to view your posts
         </p>
+        <Button onClick={() => navigate('/verify-account')} gradientDuoTone='purpleToPink'>
+          Verify Account
+        </Button>
       </div>
     );
   }
 
   return (
     <div className='overflow-x-auto md:mx-auto p-3 scrollbar scrollbar-track-slate-100 scrollbar-thumb-slate-300 dark:scrollbar-track-slate-700 dark:scrollbar-thumb-slate-500'>
+      <h1 className='text-2xl font-bold text-center my-6 text-gray-800 dark:text-white'>My Posts</h1>
+      
       {error && (
         <div className='mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-lg'>
           {error}
@@ -156,6 +169,12 @@ export default function DashPosts() {
         </div>
       </div>
 
+      <div className='flex justify-end mb-4'>
+        <Button onClick={() => navigate('/create-post')} gradientDuoTone='purpleToBlue'>
+          Create New Post
+        </Button>
+      </div>
+
       {loading.posts && posts.length === 0 ? (
         <div className='flex justify-center items-center h-64'>
           <Spinner size='xl' />
@@ -181,7 +200,7 @@ export default function DashPosts() {
                   <Table.Cell>
                     <div className='flex items-center gap-3'>
                       <img
-                        src={post.image }
+                        src={post.image}
                         alt={post.title}
                         className='w-16 h-10 object-cover rounded'
                         onError={(e) => {
@@ -262,9 +281,14 @@ export default function DashPosts() {
           )}
         </>
       ) : (
-        <p className='text-center text-gray-600 dark:text-gray-400 py-10'>
-          No posts found
-        </p>
+        <div className='flex flex-col items-center justify-center py-10 bg-white dark:bg-gray-800 rounded-lg shadow'>
+          <p className='text-center text-gray-600 dark:text-gray-400 mb-4'>
+            You haven't created any posts yet
+          </p>
+          <Button onClick={() => navigate('/create-post')} gradientDuoTone='purpleToBlue'>
+            Create Your First Post
+          </Button>
+        </div>
       )}
 
       <Modal show={showModal} onClose={() => setShowModal(false)} popup size='md'>

@@ -3,9 +3,10 @@ import mongoose from "mongoose";
 const postSchema = new mongoose.Schema(
     {
         userId: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User', // <-- reference your User model
             required: true,
-        },
+          },
         content: {
             type: String,
             required: true,
@@ -28,6 +29,24 @@ const postSchema = new mongoose.Schema(
             required: true,
             unique: true,
         },
+        views: {
+            type: Number,
+            default: 0,
+          },
+          commentCount: {
+            type: Number,
+            default: 0,
+          },
+          likes: [
+            {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "User"
+            }
+          ],
+          likesCount: {
+            type: Number,
+            default: 0
+          },
     },
     { timestamps: true }
 );

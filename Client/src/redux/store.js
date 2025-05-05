@@ -1,33 +1,55 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import userReducer from './user/userSlice';
-import { persistReducer,persistStore } from 'redux-persist';
+import { persistReducer, persistStore } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import themeReducer from './theme/themeSlice'
+import userReducer from './user/userSlice';
+import themeReducer from './theme/themeSlice';
 
-// Combine reducers if you have more than one
-const rootReducer = combineReducers({
-  user: userReducer,
-  theme:themeReducer,
-});
-
-// Configuration for redux-persist
-const persistConfig = {
+// Configuration constants
+const PERSIST_CONFIG = {
   key: 'root',
-  storage,
   version: 1,
+  storage,
+  whitelist: ['user', 'theme']
 };
 
-// Creating a persisted reducer using the persist configuration and root reducer
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+// Use import.meta.env for Vite environment variables
+const VERIFICATION_THRESHOLDS = {
+  ACTIVITY_SCORE: import.meta.env.VITE_VERIFY_ACTIVITY_SCORE || 50,
+  LOGIN_COUNT: import.meta.env.VITE_VERIFY_LOGIN_COUNT || 5
+};
 
-// Configuring the store with the persisted reducer and middleware
-export const store = configureStore({
-  reducer: persistedReducer, // Persisted reducer goes here
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false,
-    }),
+const rootReducer = combineReducers({
+  user: userReducer,
+  theme: themeReducer
 });
 
-// Exporting the persistor which will be used in your app entry point
-export const persistor= persistStore(store);
+const persistedReducer = persistReducer(PERSIST_CONFIG, rootReducer);
+
+export const store = configureStore({
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) => 
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE']
+      }
+    }),
+  preloadedState: {
+    user: {
+      verificationStatus: {
+        requiredActivityScore: VERIFICATION_THRESHOLDS.ACTIVITY_SCORE,
+        requiredLoginCount: VERIFICATION_THRESHOLDS.LOGIN_COUNT
+      }
+    }
+  }
+});
+
+export const persistor = persistStore(store);
+
+// Development utility (using import.meta.env)
+if (import.meta.env.MODE === 'development') {
+  window.purgeReduxStore = async () => {
+    await persistor.purge();
+    console.log('Redux store purged');
+    window.location.reload();
+  };
+}

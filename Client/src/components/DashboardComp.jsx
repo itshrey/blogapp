@@ -1,233 +1,254 @@
-import React, { useEffect, useState } from 'react'
-import { HiOutlineUserGroup,HiArrowNarrowUp, HiAnnotation } from 'react-icons/hi';
+import React, { useEffect, useState } from 'react';
+import { HiOutlineUserGroup, HiArrowNarrowUp, HiAnnotation, HiOutlineDocumentText } from 'react-icons/hi';
 import { useSelector } from 'react-redux';
-import { Button, Table } from 'flowbite-react';
+import { Button, Table, Badge, Spinner } from 'flowbite-react';
 import { Link } from 'react-router-dom';
+
 export default function DashboardComp() {
-    const {currentUser} = useSelector((state)=>state.user);
-    const[users,setUsers]=useState([]);
-    const [comments,setComments]= useState([]);
-    const [posts,setPosts]= useState([]);
-    const [totalUsers,setTotalUsers]= useState(0);
-    const [totalPosts,setTotalPosts]= useState(0);
-    const [totalComments,setTotalComments]= useState(0);
-    const [totalLikes,setTotalLikes]= useState(0);
-    const[lastMonthComments,setLastMonthComments] = useState(0);
-    const[lastMonthPosts,setLastMonthPosts] = useState(0);
-    const[lastMonthUsers,setLastMonthUsers] = useState(0);
-    useEffect(()=>{
-        const fetchUsers=async ()=>{
-            try {
-                const res = await fetch('api/user/getusers?limit=5');
-                const data =  await res.json();
-                if(res.ok){
-                    setUsers(data.users);
-                    setTotalUsers(data.totalUsers);
-                    setLastMonthUsers(data.lastMonthUsers);
-                } 
-                
-            } catch (error) {
-                console.log(error.message);
-            }
+    const { currentUser } = useSelector((state) => state.user);
+    const [users, setUsers] = useState([]);
+    const [comments, setComments] = useState([]);
+    const [posts, setPosts] = useState([]);
+    const [stats, setStats] = useState({
+        totalUsers: 0,
+        totalPosts: 0,
+        totalComments: 0,
+        lastMonthComments: 0,
+        lastMonthPosts: 0,
+        lastMonthUsers: 0
+    });
+    const [loading, setLoading] = useState({
+        users: false,
+        posts: false,
+        comments: false
+    });
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (currentUser.isAdmin) {
+            const fetchData = async () => {
+                try {
+                    setLoading(prev => ({ ...prev, users: true }));
+                    const [usersRes, postsRes, commentsRes] = await Promise.all([
+                        fetch('/api/getUsers?limit=5'),
+                        fetch('/api/post/getposts?limit=5'),
+                        fetch('/api/comment/?limit=5')
+                    ]);
+
+                    const usersData = await usersRes.json();
+                    const postsData = await postsRes.json();
+                    const commentsData = await commentsRes.json();
+
+                    if (usersRes.ok && postsRes.ok && commentsRes.ok) {
+                        setUsers(usersData.users);
+                        setPosts(postsData.posts);
+                        setComments(commentsData.comments);
+                        setStats({
+                            totalUsers: usersData.totalUsers,
+                            totalPosts: postsData.totalPosts,
+                            totalComments: commentsData.totalComments,
+                            lastMonthUsers: usersData.lastMonthUsers,
+                            lastMonthPosts: postsData.lastMonthPosts,
+                            lastMonthComments: commentsData.lastMonthComments
+                        });
+                    } else {
+                        setError('Failed to fetch dashboard data');
+                    }
+                } catch (error) {
+                    setError(error.message);
+                } finally {
+                    setLoading({ users: false, posts: false, comments: false });
+                }
+            };
+            fetchData();
         }
-        const fetchPosts=async ()=>{
-            try {
-                const res = await fetch('api/post/getposts?limit=5');
-                const data =  await res.json();
-                if(res.ok){
-                    setPosts(data.posts);
-                    setTotalPosts(data.totalPosts);
-                    setLastMonthPosts(data.lastMonthPosts);
-                } 
-                
-            } catch (error) {
-                console.log(error.message);
-            }
-        }
-        const fetchComments=async ()=>{
-            try {
-                const res = await fetch('api/comment/getcomments?limit=5');
-                const data =  await res.json();
-                if(res.ok){
-                    setComments(data.comments);
-                    setTotalComments(data.totalComments);
-                    setLastMonthComments(data.lastMonthComments);
-                } 
-                
-            } catch (error) {
-                console.log(error.message);
-            }
-        }
-        if(currentUser.isAdmin){
-            fetchUsers();
-            fetchPosts();
-            fetchComments();
-        }
-    },[currentUser])
-  return (
-    <div className='p-3 md:mx-auto'>
-        <div className='flex-wrap flex gap-4 justify-center'>
-            <div className='flex flex-col p-3 dark:bg-slate-800 gap-4 md:w-72 w-full rounded-md shadow-md'>
-                <div className='flex justify-between'>
-                    <div>
-                    <h3 className='text-gray-500 text-md uppercase'>Total Users</h3>
-                    <p className='text-2xl'>{totalUsers}</p>
-                    </div>
-                    <HiOutlineUserGroup className='bg-teal-600 text-white rounded-full p-3 text-5xl shadow-lg'/>
+    }, [currentUser]);
+
+    const StatCard = ({ title, value, icon: Icon, lastMonthValue, iconColor }) => (
+        <div className='flex flex-col p-3 dark:bg-slate-800 gap-4 md:w-72 w-full rounded-md shadow-md'>
+            <div className='flex justify-between'>
+                <div>
+                    <h3 className='text-gray-500 text-md uppercase'>{title}</h3>
+                    <p className='text-2xl'>{value}</p>
                 </div>
-                <div className='flex gap-2 text-sm'>
-                    <span className='text-gray-500 flex items-center'>
-                       < HiArrowNarrowUp />
-                       {lastMonthUsers}
-                    </span>
-                    <div className='text-gray-500'>
-                        Last Month
-                    </div>
+                <Icon className={`${iconColor} text-white rounded-full p-3 text-5xl shadow-lg`} />
+            </div>
+            <div className='flex gap-2 text-sm'>
+                <span className='text-gray-500 flex items-center'>
+                    <HiArrowNarrowUp />
+                    {lastMonthValue}
+                </span>
+                <div className='text-gray-500'>Last Month</div>
             </div>
         </div>
-            <div className='flex flex-col p-3 dark:bg-slate-800 gap-4 md:w-72 w-full rounded-md shadow-md'>
-                <div className='flex justify-between'>
-                    <div>
-                    <h3 className='text-gray-500 text-md uppercase'>Total Comments</h3>
-                    <p className='text-2xl'>{totalComments}</p>
-                    </div>
-                    <HiAnnotation className='bg-indigo-600 text-white rounded-full p-3 text-5xl shadow-lg'/>
-                </div>
-                <div className='flex gap-2 text-sm'>
-                    <span className='text-gray-500 flex items-center'>
-                       < HiArrowNarrowUp />
-                       {lastMonthComments}
-                    </span>
-                    <div className='text-gray-500'>
-                        Last Month
-                    </div>
-            </div>
-        </div>
-            <div className='flex flex-col p-3 dark:bg-slate-800 gap-4 md:w-72 w-full rounded-md shadow-md'>
-                <div className='flex justify-between'>
-                    <div>
-                    <h3 className='text-gray-500 text-md uppercase'>Total Posts</h3>
-                    <p className='text-2xl'>{totalPosts}</p>
-                    </div>
-                    <HiOutlineUserGroup className='bg-teal-600 text-white rounded-full p-3 text-5xl shadow-lg'/>
-                </div>
-                <div className='flex gap-2 text-sm'>
-                    <span className='text-gray-500 flex items-center'>
-                       < HiArrowNarrowUp />
-                       {lastMonthUsers}
-                    </span>
-                    <div className='text-gray-500'>
-                        Last Month
-                    </div>
-            </div>
-        </div>
-      </div>
-      <div className='flex flex-wrap gap-4 py-3 mx-auto justify-center'>
+    );
+
+    const DataTable = ({ title, data, columns, seeAllLink, loading }) => (
         <div className='flex flex-col w-full md:w-auto shadow-md p-2 rounded-md dark:bg-gray-800'>
             <div className='flex justify-between p-3 font-semibold text-sm'>
-                <h1 className='p-2 text-center'>Recent Users</h1>
+                <h1 className='p-2 text-center'>{title}</h1>
                 <Button outline gradientDuoTone='purpleToPink'>
-                    <Link to='/dashboard?tab=users'>
-                        See all
-                    </Link>
+                    <Link to={seeAllLink}>See all</Link>
                 </Button>
             </div>
-            <Table hoverable>
-                <Table.Head>
-                    <Table.HeadCell>
-                        User Image
-                    </Table.HeadCell>
-                    <Table.HeadCell>
-                        Username
-                    </Table.HeadCell>
-                </Table.Head>
-                {users && users.map((user)=>(
-                    <Table.Body key={user._id} className='divide-y'>
-                        <Table.Row className='bg-white dark:border-gray-700 dark:bg-gray-800'>
-                            <Table.Cell>
-                                <img src={user.profilePicture} alt="user" 
-                                className='w-10 h-10 rounded-full bg-gray-500'/> 
-                            </Table.Cell>
-                            <Table.Cell>
-                                {user.username}
-                            </Table.Cell>
-                        </Table.Row>
+            {loading ? (
+                <div className='flex justify-center p-4'>
+                    <Spinner size='xl' />
+                </div>
+            ) : (
+                <Table hoverable>
+                    <Table.Head>
+                        {columns.map((column) => (
+                            <Table.HeadCell key={column}>{column}</Table.HeadCell>
+                        ))}
+                    </Table.Head>
+                    <Table.Body className='divide-y'>
+                        {data.map((item) => (
+                            <Table.Row key={item._id} className='bg-white dark:border-gray-700 dark:bg-gray-800'>
+                                {columns.map((column) => {
+                                    switch (column) {
+                                        case 'User Image':
+                                            return (
+                                                <Table.Cell key={`${item._id}-image`}>
+                                                    <img 
+                                                        src={item.profilePicture || '/default-profile.png'} 
+                                                        alt="user" 
+                                                        className='w-10 h-10 rounded-full bg-gray-500 object-cover'
+                                                        onError={(e) => {
+                                                            e.target.src = '/default-profile.png';
+                                                        }}
+                                                    />
+                                                </Table.Cell>
+                                            );
+                                        case 'Username':
+                                            return (
+                                                <Table.Cell key={`${item._id}-username`}>
+                                                    <div className='flex items-center gap-2'>
+                                                        {item.username}
+                                                        {item.isAdmin && (
+                                                            <Badge color='failure'>Admin</Badge>
+                                                        )}
+                                                        {item.isVerified &&
+                                                         !item.isAdmin && (
+                                                            <Badge color='success'>Verified</Badge>
+                                                        )}
+                                                    </div>
+                                                </Table.Cell>
+                                            );
+                                        case 'Comment Content':
+                                            return (
+                                                <Table.Cell key={`${item._id}-content`} className='w-96'>
+                                                    <p className='line-clamp-2'>{item.content}</p>
+                                                </Table.Cell>
+                                            );
+                                        case 'Likes':
+                                            return (
+                                                <Table.Cell key={`${item._id}-likes`}>
+                                                    {item.numberOfLikes || 0}
+                                                </Table.Cell>
+                                            );
+                                        case 'Post Image':
+                                            return (
+                                                <Table.Cell key={`${item._id}-post-image`}>
+                                                    <img 
+                                                        src={item.image || '/default-post.png'} 
+                                                        alt="post" 
+                                                        className='w-14 h-10 rounded-md bg-gray-500 object-cover'
+                                                        onError={(e) => {
+                                                            e.target.src = '/default-post.png';
+                                                        }}
+                                                    />
+                                                </Table.Cell>
+                                            );
+                                        case 'Post Title':
+                                            return (
+                                                <Table.Cell key={`${item._id}-title`} className='w-96'>
+                                                    {item.title}
+                                                </Table.Cell>
+                                            );
+                                        case 'Category':
+                                            return (
+                                                <Table.Cell key={`${item._id}-category`} className='w-5'>
+                                                    {item.category}
+                                                </Table.Cell>
+                                            );
+                                        default:
+                                            return null;
+                                    }
+                                })}
+                            </Table.Row>
+                        ))}
                     </Table.Body>
-                ))}
-            </Table>
+                </Table>
+            )}
         </div>
-        <div className='flex flex-col w-full md:w-auto shadow-md p-2 rounded-md dark:bg-gray-800'>
-            <div className='flex justify-between p-3 font-semibold text-sm'>
-                <h1 className='p-2 text-center'>Recent Comments</h1>
-                <Button outline gradientDuoTone='purpleToPink'>
-                    <Link to='/dashboard?tab=comments'>
-                        See all
-                    </Link>
-                </Button>
+    );
+
+    if (!currentUser.isAdmin) {
+        return (
+            <div className='flex justify-center items-center h-screen'>
+                <h1 className='text-2xl font-semibold text-gray-700 dark:text-gray-300'>
+                    Admin access required
+                </h1>
             </div>
-            <Table hoverable>
-                <Table.Head>
-                    <Table.HeadCell>
-                        Comment Content
-                    </Table.HeadCell>
-                    <Table.HeadCell>
-                        Likes
-                    </Table.HeadCell>
-                </Table.Head>
-                {comments && comments.map((comment)=>(
-                    <Table.Body key={comment._id} className='divide-y'>
-                        <Table.Row className='bg-white dark:border-gray-700 dark:bg-gray-800'>
-                            <Table.Cell className='w-96'>
-                                <p className='line-clamp-2 '>{comment.content}</p> 
-                            </Table.Cell>
-                            <Table.Cell>
-                                {comment.NumberOfLikes}
-                            </Table.Cell>
-                        </Table.Row>
-                    </Table.Body>
-                ))}
-            </Table>
-        </div>
-        <div className='flex flex-col w-full md:w-auto shadow-md p-2 rounded-md dark:bg-gray-800'>
-            <div className='flex justify-between p-3 font-semibold text-sm'>
-                <h1 className='p-2 text-center'>Recent Posts</h1>
-                <Button outline gradientDuoTone='purpleToPink'>
-                    <Link to='/dashboard?tab=users'>
-                        See all
-                    </Link>
-                </Button>
+        );
+    }
+
+    return (
+        <div className='p-3 md:mx-auto'>
+            {error && (
+                <div className='mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-lg'>
+                    {error}
+                </div>
+            )}
+
+            <div className='flex-wrap flex gap-4 justify-center'>
+                <StatCard 
+                    title="Total Users" 
+                    value={stats.totalUsers} 
+                    icon={HiOutlineUserGroup} 
+                    lastMonthValue={stats.lastMonthUsers} 
+                    iconColor="bg-teal-600" 
+                />
+                <StatCard 
+                    title="Total Comments" 
+                    value={stats.totalComments} 
+                    icon={HiAnnotation} 
+                    lastMonthValue={stats.lastMonthComments} 
+                    iconColor="bg-indigo-600" 
+                />
+                <StatCard 
+                    title="Total Posts" 
+                    value={stats.totalPosts} 
+                    icon={HiOutlineDocumentText} 
+                    lastMonthValue={stats.lastMonthPosts} 
+                    iconColor="bg-blue-600" 
+                />
             </div>
-            <Table hoverable>
-                <Table.Head>
-                    <Table.HeadCell>
-                        Post Image
-                    </Table.HeadCell>
-                    <Table.HeadCell>
-                        Post Title
-                    </Table.HeadCell>
-                    <Table.HeadCell>
-                        Category
-                    </Table.HeadCell>
-                </Table.Head>
-                {posts && posts.map((post)=>(
-                    <Table.Body key={post._id} className='divide-y'>
-                        <Table.Row className='bg-white dark:border-gray-700 dark:bg-gray-800'>
-                            <Table.Cell>
-                                <img src={post.image} alt="post" 
-                                className='w-14 h-10 rounded-md bg-gray-500'/> 
-                            </Table.Cell>
-                            <Table.Cell className='w-96'>
-                                {post.title}
-                            </Table.Cell>
-                            <Table.Cell className='w-5'>
-                                {post.category}
-                            </Table.Cell>
-                        </Table.Row>
-                    </Table.Body>
-                ))}
-            </Table>
+
+            <div className='flex flex-wrap gap-4 py-3 mx-auto justify-center'>
+                <DataTable
+                    title="Recent Users"
+                    data={users}
+                    columns={['User Image', 'Username']}
+                    seeAllLink="/dashboard?tab=users"
+                    loading={loading.users}
+                />
+                <DataTable
+                    title="Recent Comments"
+                    data={comments}
+                    columns={['Comment Content', 'Likes']}
+                    seeAllLink="/dashboard?tab=comments"
+                    loading={loading.comments}
+                />
+                <DataTable
+                    title="Recent Posts"
+                    data={posts}
+                    columns={['Post Image', 'Post Title', 'Category']}
+                    seeAllLink="/dashboard?tab=posts"
+                    loading={loading.posts}
+                />
+            </div>
         </div>
-      </div>
-    </div>
-  )
+    );
 }

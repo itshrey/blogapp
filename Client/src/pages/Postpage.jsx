@@ -1,91 +1,247 @@
-import React, { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom';
-import { Button, Spinner } from 'flowbite-react';
+import React, { useEffect, useState } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Button, Spinner, Alert, Badge, Tooltip } from 'flowbite-react';
 import PostCard from '../components/PostCard';
 import CallToAction from '../components/CallToAction';
 import CommentSection from '../components/CommentSection';
-export default function Postpage() {
-        const {postSlug} = useParams();
-        const [loading, setLoading ] = useState(true);
-        const [error, setError ] = useState(false);
-        const [post,setPost] = useState(null);
-        const [recentPosts,setRecentPosts]=useState(null);
+import { useSelector } from 'react-redux';
+import { HiOutlineClock, HiOutlineCalendar, HiOutlineUser } from 'react-icons/hi';
+import { FaRegHeart, FaHeart } from 'react-icons/fa';
 
-        useEffect(()=>{
-            const fetchPost = async ()=>{
-                try {
-                    setLoading(true);
-                    const res= await fetch(`/api/post/getposts?slug=${postSlug}`);
-                    const data=  await res.json();
-                    if(!res.ok){
-                        setError(true);
-                        setLoading(false);
-                        return
-                    }else{
-                        setPost(data.posts[0]);
-                        setLoading(false);
-                        setError(false);
-                    }
-                } catch (error) {
-                    setError(true);
-                    setLoading(false);
+export default function PostPage() {
+    const { postSlug } = useParams();
+    const navigate = useNavigate();
+    const { currentUser } = useSelector(state => state.user);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [post, setPost] = useState(null);
+    const [recentPosts, setRecentPosts] = useState(null);
+    const [relatedPosts, setRelatedPosts] = useState(null);
+    const [likes, setLikes] = useState(0);
+    const [liked, setLiked] = useState(false);
+
+    const toggleLike = async () => {
+        if (!currentUser) {
+            navigate('/sign-in');
+            return;
+        }
+    
+        try {
+            const res = await fetch('/api/post/like', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ postId: post._id }),
+            });
+    
+            const data = await res.json();
+    
+            if (res.ok) {
+                setLikes(data.likesCount);
+                setLiked(data.isLiked);
+                // Update the post object to keep UI in sync
+                setPost(prev => ({
+                    ...prev,
+                    likesCount: data.likesCount,
+                    likes: data.isLiked
+                        ? [...(prev.likes || []), currentUser._id]
+                        : (prev.likes || []).filter(id => id !== currentUser._id)
+                }));
+            }
+            window.location.reload(); // Reload the page to reflect changes
+        } catch (error) {
+            console.error('Like toggle error:', error);
+        }
+    };
+
+    useEffect(() => {
+        const fetchPost = async () => {
+            try {
+                setLoading(true);
+                const res = await fetch(`/api/post/getposts?slug=${postSlug}`);
+                const data = await res.json();
+                
+                if (!res.ok) throw new Error(data.message || 'Post not found');
+                if (data.posts.length === 0) {
+                    navigate('/404', { replace: true });
+                    return;
                 }
-            };
-            fetchPost();
-        },[postSlug]);
+    
+                const fetchedPost = data.posts[0];
+                setPost(fetchedPost);
+                setLikes(fetchedPost.likesCount || 0);
+                
+                // Set liked status based on whether current user is in likes array
+                setLiked(
+                    currentUser && 
+                    fetchedPost.likes && 
+                    fetchedPost.likes.includes(currentUser._id)
+                );
+            } catch (error) {
+                setError(true);
+                navigate('/404', { replace: true });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPost();
+    }, [postSlug, navigate, currentUser]);
 
-
-        useEffect(()=>{
-            const fetchRecentPost = async ()=>{
-                try {
-                    setLoading(true);
-                    const res= await fetch(`/api/post/getposts?limit=3`);
-                    const data=  await res.json();
-                    if(res.ok){
-                        setRecentPosts(data.posts);
-                    }
-                } catch (error) {
-                    setError(true);
-                    setLoading(false);
+    useEffect(() => {
+        const fetchRecentPosts = async () => {
+            try {
+                const res = await fetch('/api/post/getposts?limit=3');
+                const data = await res.json();
+                if (res.ok) {
+                    setRecentPosts(data.posts);
                 }
-            };
-            fetchRecentPost();
-        },[]);
+            } catch (error) {
+                console.error('Fetch recent posts error:', error);
+            }
+        };
 
-
-  if (loading) return (<div className='flex justify-center items-center'>
-    <Spinner size='xl' />
-  </div>)
-  return (
-    <main className='p-3 flex flex-col max-w-6xl mx-auto min-h-screen'>
-        <h1 className='text-3xl mt-10 p-3  font-serif max-w-2xl mx-auto lg:text-4xl'>{post && post.title}</h1>
-        <Link to={`/search?category=${post && post.category}`} className='mt-5'>
-            <Button className='mx-auto' color='gray' pill size='xs'>{post && post.category}</Button>
-        </Link>
-        <img src={post && post.image} alt={post && post.title} className='mt-10 p-3 max-h-[600px] w-full object-cover' />
-        <div className='flex justify-between p-3 border-b border-slate-500 mx-auto w-full max-w-2xl text-xs'>
-            <span>{post && new Date(post.createdAt).toLocaleDateString()}</span>
-            <span className='italic'>{post && (post.content.length /100).toFixed(0)} mins read</span>
-        </div>
-        <div className='p-3 mx-auto max-w-2xl w-full post-content'dangerouslySetInnerHTML={{__html: post && post.content}}>
-
-        </div>
-        <div className='mx-auto max-w-4xl w-full'>
-            <CallToAction />
-        </div>
-        <CommentSection postId={post._id} />
-
-        <div className='flex flex-col justify-center items-center mb-5'>
-            <h1 className='text-xl mt-5'>Recent Articles</h1>
-            <div className='flex flex-wrap gap-5 mt-5 justify-center'>
-                {
-                    recentPosts && recentPosts.map((post)=>(
-                        <PostCard key={post._id} post={post} />
-                    ))
+        const fetchRelatedPosts = async () => {
+            if (!post) return;
+            try {
+                const res = await fetch(`/api/post/getposts?category=${post.category}&limit=3`);
+                const data = await res.json();
+                if (res.ok) {
+                    setRelatedPosts(data.posts.filter(p => p._id !== post._id));
                 }
+            } catch (error) {
+                console.error('Fetch related posts error:', error);
+            }
+        };
+
+        fetchRecentPosts();
+        fetchRelatedPosts();
+    }, [post]);
+
+    const calculateReadTime = (content) => {
+        const text = content.replace(/<[^>]*>/g, ' ');
+        const words = text.split(/\s+/).filter(word => word.length > 0);
+        return Math.ceil(words.length / 200);
+    };
+
+    if (loading) {
+        return (
+            <div className='flex justify-center items-center min-h-screen'>
+                <Spinner size='xl' />
             </div>
-        </div>
-    </main>
-  )
-}
+        );
+    }
 
+    if (error || !post) {
+        return (
+            <div className='flex justify-center items-center min-h-screen'>
+                <Alert color='failure' className='max-w-md'>
+                    Failed to load post. Please try again later.
+                </Alert>
+            </div>
+        );
+    }
+
+    return (
+        <main className='p-3 flex flex-col max-w-7xl mx-auto min-h-screen'>
+            {/* Post Header */}
+            <div className='mt-10 mb-6 text-center'>
+                <div className='flex justify-center gap-2 mb-4'>
+                    <Badge color='gray' className='w-fit'>
+                        {post.category}
+                    </Badge>
+                    {post.isAdminPost && (
+                        <Badge color='indigo' className='w-fit'>
+                            Admin Post
+                        </Badge>
+                    )}
+                </div>
+                <h1 className='text-3xl md:text-4xl lg:text-5xl font-bold mb-4'>{post.title}</h1>
+                
+                <div className='flex flex-wrap justify-center items-center gap-4 text-sm text-gray-500 dark:text-gray-400'>
+                    <div className='flex items-center gap-1'>
+                        <HiOutlineUser className='text-sm' />
+                        <span>{post.userId.username}</span>
+                    </div>
+                    <div className='flex items-center gap-1'>
+                        <HiOutlineCalendar className='text-sm' />
+                        <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className='flex items-center gap-1'>
+                        <HiOutlineClock className='text-sm' />
+                        <span>{calculateReadTime(post.content)} min read</span>
+                    </div>
+                                        <div className="flex items-center gap-1">
+                        <Tooltip content={liked ? 'Remove like' : 'Like this post'}>
+                            <button 
+                                onClick={toggleLike} 
+                                className={`text-gray-500 hover:text-red-500 ${liked ? 'text-red-500' : ''}`}
+                            >
+                                {liked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+                            </button>
+                        </Tooltip>
+                        <span>{likes} Likes</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Featured Image */}
+            {post.image && (
+                <div className='relative w-full h-64 md:h-80 lg:h-96 mb-8 rounded-xl overflow-hidden shadow-lg'>
+                    <img 
+                        src={post.image} 
+                        alt={post.title} 
+                        className='w-full h-full object-cover'
+                    />
+                </div>
+            )}
+
+            {/* Post Content */}
+            <article 
+                className='prose dark:prose-invert max-w-4xl mx-auto w-full px-4 lg:px-0'
+                dangerouslySetInnerHTML={{ __html: post.content }}
+            />
+
+            {/* Call to Action */}
+            <div className='my-12 max-w-4xl w-full mx-auto'>
+                <CallToAction />
+            </div>
+
+            {/* Comments Section */}
+            <div className='max-w-4xl w-full mx-auto mb-12'>
+                <CommentSection postId={post._id} />
+            </div>
+
+            {/* Related Posts */}
+            {relatedPosts && relatedPosts.length > 0 && (
+                <section className='mb-12'>
+                    <h2 className='text-2xl font-bold mb-6 text-center'>More in {post.category}</h2>
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                        {relatedPosts.map((post) => (
+                            <PostCard key={post._id} post={post} />
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Recent Posts */}
+            {recentPosts && recentPosts.length > 0 && (
+                <section className='mb-12'>
+                    <h2 className='text-2xl font-bold mb-6 text-center'>Recent Articles</h2>
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                        {recentPosts.map((post) => (
+                            <PostCard key={post._id} post={post} />
+                        ))}
+                    </div>
+                    <div className='text-center mt-6'>
+                        <Link to='/search'>
+                            <Button gradientDuoTone='purpleToBlue'>
+                                View All Articles
+                            </Button>
+                        </Link>
+                    </div>
+                </section>
+            )}
+        </main>
+    );
+}
