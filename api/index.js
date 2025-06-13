@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.route.js';
 import postRoutes from './routes/post.route.js';
 import commentRoutes from './routes/comment.route.js';
 import { verifyToken,adminOnly } from './middleware/auth.middleware.js';
+import aiRoutes from './routes/ai.route.js';
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use(cors({
   credentials: true, // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE']
 }));
+
 
 app.use(express.json()); // Parse JSON data
 app.use(cookieParser()); // Parse cookies
@@ -82,6 +84,8 @@ app.get('/api/getUsers', verifyToken, adminOnly, async (req, res) => {
     });
   }
 });
+app.use('/api/ai', aiRoutes);
+
 
 // Global Error Handler
 app.use((err, req, res, next) => {

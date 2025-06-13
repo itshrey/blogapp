@@ -35,6 +35,7 @@ export default function Header() {
         console.log(data.message);
       } else {
         dispatch(signoutSuccess());
+        navigate('/sign-in');
       }
     } catch (error) {
       console.log(error.message);
@@ -72,6 +73,7 @@ export default function Header() {
           <TextInput
             type='text'
             placeholder='Search posts...'
+            data-testid="header-search-input"
             rightIcon={AiOutlineSearch}
             className='w-full max-w-md'
             value={searchTerm}
@@ -85,6 +87,7 @@ export default function Header() {
           color='gray'
           pill
           onClick={toggleMobileSearch}
+          data-testid="search-submit"
         >
           <AiOutlineSearch />
         </Button>
@@ -120,6 +123,7 @@ export default function Header() {
           {currentUser ? (
             <Dropdown
               arrowIcon={false}
+              data-testid="user-dropdown"
               inline
               label={
                 <div className='relative'>
@@ -165,7 +169,7 @@ export default function Header() {
                 </Link>
               )}
               <Dropdown.Divider />
-              <Dropdown.Item onClick={handleSignout}>Sign out</Dropdown.Item>
+              <Dropdown.Item onClick={handleSignout} data-testid="signout-button">Sign out</Dropdown.Item>
             </Dropdown>
           ) : (
             <Link to='/sign-in'>

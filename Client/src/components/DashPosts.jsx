@@ -233,6 +233,7 @@ export default function DashPosts() {
                             setPostIdToDelete(post._id);
                             setShowModal(true);
                           }}
+                          data-testid="delete-post"
                         >
                           <FaTrash />
                         </Button>
@@ -278,6 +279,7 @@ export default function DashPosts() {
             <div className='flex justify-center gap-5'>
               <Button
                 color='failure'
+                data-testid="confirm-delete"
                 onClick={handleDeletePost}
                 disabled={loading.delete}
               >

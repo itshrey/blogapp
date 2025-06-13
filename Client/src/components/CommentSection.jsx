@@ -152,7 +152,7 @@ export default function CommentSection({ postId }) {
     };
 
     return (
-        <div className='max-w-2xl mx-auto w-full p-3'>
+        <div className='max-w-2xl mx-auto w-full p-3' data-testid="comment-section">
             {/* User info */}
             {currentUser ? (
                 <div className='flex items-center gap-1 my-5 text-gray-500 text-sm'>
@@ -165,7 +165,7 @@ export default function CommentSection({ postId }) {
                     />
                     <Link 
                         to='/dashboard?tab=profile' 
-                        className='text-xs text-cyan-600 hover:underline'
+                        className='text-xs text-cyan-600 hover:underline' data-testid="comment-user"
                     >
                         @{currentUser.username}
                         {currentUser.isAdmin && ' (Admin)'}
@@ -183,7 +183,7 @@ export default function CommentSection({ postId }) {
 
             {/* Comment form */}
             {currentUser && (
-                <form className='border border-teal-400 rounded-md p-3' onSubmit={handleSubmit}>
+                <form className='border border-teal-400 rounded-md p-3' onSubmit={handleSubmit} data-testid="comment-form">
                     <Textarea 
                         placeholder='Add a comment...'
                         rows='3'
@@ -191,6 +191,7 @@ export default function CommentSection({ postId }) {
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
                         disabled={loading.submission}
+                        data-testid="comment-input"
                     />
                     <div className='flex justify-between items-center mt-5'>
                         <p className='text-gray-500 text-sm'>
@@ -201,6 +202,7 @@ export default function CommentSection({ postId }) {
                             type='submit'
                             outline
                             disabled={loading.submission || !comment.trim()}
+                            data-testid="comment-submit"
                         >
                             {loading.submission ? (
                                 <>
@@ -215,7 +217,7 @@ export default function CommentSection({ postId }) {
 
             {/* Error display */}
             {error && (
-                <Alert color='failure' className='mt-5'>
+                <Alert color='failure' className='mt-5'  data-testid="comment-error">
                     {error}
                 </Alert>
             )}
@@ -255,6 +257,7 @@ export default function CommentSection({ postId }) {
                 onClose={() => setModal({ show: false, commentId: null })}
                 popup
                 size='md'
+                data-testid="delete-modal"
             >
                 <Modal.Header />
                 <Modal.Body>

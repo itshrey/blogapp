@@ -148,6 +148,7 @@ export default function Search() {
               value={sidebarData.searchTerm}
               onChange={handleChange}
               icon={HiSearch}
+              data-testid="search-input"
             />
           </div>
 
@@ -204,7 +205,7 @@ export default function Search() {
 
           {/* Action Buttons */}
           <div className="flex gap-3">
-            <Button type='submit' gradientDuoTone='purpleToBlue' className='flex-1'>
+            <Button type='submit' gradientDuoTone='purpleToBlue' className='flex-1' data-testid="search-submit">
               Apply Filters
             </Button>
             <Button type='button' color='gray' outline onClick={resetFilters}>

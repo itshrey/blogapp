@@ -82,76 +82,65 @@ export const updateUser = async (req, res, next) => {
 };
 
 
+
 export const deleteUser = async (req, res, next) => {
     try {
-        // Check if user ID exists in params
-        if (!req.params.userId) {
+        // Validate userId param
+        const { userId } = req.params;
+        if (!userId) {
             return next(errorHandler(400, "User ID is required"));
         }
 
-        // Validate userId format
-        if (!mongoose.Types.ObjectId.isValid(req.params.userId)) {
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
             return next(errorHandler(400, "Invalid user ID format"));
         }
 
-        // Check if user exists before attempting deletion
-        const userToDelete = await User.findById(req.params.userId);
+        // Fetch user to delete
+        const userToDelete = await User.findById(userId);
         if (!userToDelete) {
             return next(errorHandler(404, "User not found"));
         }
 
-        // Authorization check
+        // Auth checks
         if (!req.user) {
             return next(errorHandler(401, "Authentication required"));
         }
-        
-        if (req.user.id.toString() !== req.params.userId && !req.user.isAdmin) {
+
+        const isSelfOrAdmin = req.user.id.toString() === userId || req.user.isAdmin;
+        if (!isSelfOrAdmin) {
             return next(errorHandler(403, "Unauthorized to delete this user"));
         }
 
-        // Admin protection
+        // Prevent deleting admin accounts
         if (userToDelete.isAdmin) {
             return next(errorHandler(403, "Admin accounts cannot be deleted"));
         }
 
         // Start transaction
         const session = await mongoose.startSession();
-        session.startTransaction();
 
-        try {
-            // Delete user's posts and comments
-            const deletePromises = [
-                User.findByIdAndDelete(req.params.userId).session(session)
-            ];
-            
-            // Only attempt to delete posts/comments if these models exist
+        await session.withTransaction(async () => {
+            await User.findByIdAndDelete(userId).session(session);
+
             if (Post) {
-                deletePromises.push(Post.deleteMany({ userId: req.params.userId }).session(session));
+                await Post.deleteMany({ userId }).session(session);
             }
-            
+
             if (Comment) {
-                deletePromises.push(Comment.deleteMany({ userId: req.params.userId }).session(session));
+                await Comment.deleteMany({ userId }).session(session);
             }
-            
-            await Promise.all(deletePromises);
+        });
 
-            await session.commitTransaction();
-            res.status(200).json({
-                success: true,
-                message: "User and all associated content deleted"
-            });
+        session.endSession();
 
-        } catch (error) {
-            await session.abortTransaction();
-            console.error("Transaction error:", error);
-            throw error;
-        } finally {
-            session.endSession();
-        }
+        return res.status(200).json({
+            success: true,
+            message: "User and all associated content deleted"
+        });
 
     } catch (error) {
         console.error("Delete user error:", error);
-        next(errorHandler(500, "Failed to delete user", error));
+        return next(errorHandler(500, "Failed to delete user", error));
     }
 };
 

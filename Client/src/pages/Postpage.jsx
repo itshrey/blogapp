@@ -8,7 +8,11 @@ import { useSelector } from 'react-redux';
 import { HiOutlineClock, HiOutlineCalendar, HiOutlineUser } from 'react-icons/hi';
 import { FaRegHeart, FaHeart } from 'react-icons/fa';
 
+
 export default function PostPage() {
+    const [summary, setSummary] = useState('');
+    const [summarizing, setSummarizing] = useState(false);
+    const [showSummary, setShowSummary] = useState(false);
     const { postSlug } = useParams();
     const navigate = useNavigate();
     const { currentUser } = useSelector(state => state.user);
@@ -87,6 +91,32 @@ export default function PostPage() {
         };
         fetchPost();
     }, [postSlug, navigate, currentUser]);
+    const fetchSummary = async () => {
+        try {
+            setSummarizing(true);
+            const res = await fetch('/api/ai/summarize-blog', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: post.content }),
+            });
+    
+            const data = await res.json();
+    
+            if (res.ok) {
+                setSummary(data.summary);
+                setShowSummary(true);
+            } else {
+                console.error('Failed to summarize blog:', data.message);
+            }
+        } catch (err) {
+            console.error('Error summarizing blog:', err);
+        } finally {
+            setSummarizing(false);
+        }
+    };
+    
 
     useEffect(() => {
         const fetchRecentPosts = async () => {
@@ -156,6 +186,24 @@ export default function PostPage() {
                         </Badge>
                     )}
                 </div>
+                <div className="text-center my-8">
+                    <Button
+                        className="w-full max-w-md mx-auto"
+                        gradientDuoTone="purpleToPink"
+                        onClick={fetchSummary}
+                        disabled={summarizing}
+                    >
+                        {summarizing ? 'Summarizing...' : 'AI Summary'}
+                    </Button>
+
+                    {showSummary && summary && (
+                        <div className="bg-purple-100 dark:bg-gray-800 p-6 mt-6 rounded-xl max-w-4xl mx-auto text-gray-800 dark:text-gray-100 shadow-md">
+                        <h3 className="text-xl font-semibold mb-3">Summary</h3>
+                        <p className="text-base leading-relaxed">{summary}</p>
+                        </div>
+                    )}
+
+                </div>
                 <h1 className='text-3xl md:text-4xl lg:text-5xl font-bold mb-4'>{post.title}</h1>
                 
                 <div className='flex flex-wrap justify-center items-center gap-4 text-sm text-gray-500 dark:text-gray-400'>
@@ -171,17 +219,25 @@ export default function PostPage() {
                         <HiOutlineClock className='text-sm' />
                         <span>{calculateReadTime(post.content)} min read</span>
                     </div>
-                                        <div className="flex items-center gap-1">
-                        <Tooltip content={liked ? 'Remove like' : 'Like this post'}>
-                            <button 
-                                onClick={toggleLike} 
-                                className={`text-gray-500 hover:text-red-500 ${liked ? 'text-red-500' : ''}`}
-                            >
-                                {liked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
-                            </button>
-                        </Tooltip>
-                        <span>{likes} Likes</span>
-                    </div>
+                    <div className="flex items-center gap-1" data-testid="like-section">
+  <Tooltip content={liked ? 'Remove like' : 'Like this post'}>
+    <button 
+      onClick={toggleLike} 
+      className={`like-btn ${liked ? 'liked' : ''}`}
+      data-testid="like-button"
+      aria-label={liked ? 'Unlike post' : 'Like post'}
+    >
+      {liked ? (
+        <FaHeart className="heart-icon" data-testid="heart-filled" />
+      ) : (
+        <FaRegHeart className="heart-icon" data-testid="heart-outline" />
+      )}
+    </button>
+  </Tooltip>
+  <span className="like-count" data-testid="like-count">
+    {likes} {likes === 1 ? 'Like' : 'Likes'}
+  </span>
+</div>
                 </div>
             </div>
 

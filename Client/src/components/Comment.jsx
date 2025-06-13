@@ -49,7 +49,7 @@ export default function Comment({ comment, currentUser, onLike, onEdit, onDelete
     };
 
     return (
-        <div className='flex p-4 border-b dark:border-gray-600 text-sm relative group'>
+        <div className='flex p-4 border-b dark:border-gray-600 text-sm relative group' data-testid="comment" >
             {error && (
                 <div className='absolute top-2 right-2 text-red-500 text-xs'>
                     {error}
@@ -129,11 +129,12 @@ export default function Comment({ comment, currentUser, onLike, onEdit, onDelete
                                     }`}
                                     onClick={() => onLike(comment._id)}
                                     disabled={!currentUser}
+                                    data-testid="comment-like-button"
                                 >
                                     <FaThumbsUp className='text-sm'/>
                                 </button>
                             </Tooltip>
-                            <p className='text-gray-400 dark:text-gray-500'>
+                            <p className='text-gray-400 dark:text-gray-500' data-testid="comment-like-count">
                                 {comment.numberOfLikes > 0 && 
                                     `${comment.numberOfLikes} ${comment.numberOfLikes === 1 ? 'like' : 'likes'}`
                                 }
