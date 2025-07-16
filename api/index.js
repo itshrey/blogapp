@@ -13,7 +13,6 @@ import aiRoutes from './routes/ai.route.js';
 import path from 'path';
 dotenv.config();
 
-console.log("Environment Variables:",process.env.MONGO)
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO)
