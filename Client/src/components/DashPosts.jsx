@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
-import { FaEye, FaEdit, FaTrash, FaChartLine } from 'react-icons/fa';
+import { FaEye, FaEdit, FaTrash, FaChartLine, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import moment from 'moment';
 
 export default function DashPosts() {
@@ -11,7 +11,6 @@ export default function DashPosts() {
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [showMore, setShowMore] = useState(true);
   const [postIdToDelete, setPostIdToDelete] = useState('');
   const [loading, setLoading] = useState({
     posts: false,
@@ -24,20 +23,29 @@ export default function DashPosts() {
     totalLikes: 0
   });
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const postsPerPage = 9;
+
   useEffect(() => {
     const fetchPosts = async () => {
+      if (!currentUser.isAdmin) return;
+      
       setLoading(prev => ({ ...prev, posts: true }));
       setError(null);
       try {
-        const res = await fetch('/api/post/getposts?limit=9');
+        const startIndex = (currentPage - 1) * postsPerPage;
+        const res = await fetch(`/api/post/getposts?startIndex=${startIndex}&limit=${postsPerPage}`);
         const data = await res.json();
 
         if (res.ok) {
           setPosts(data.posts);
-          if (data.posts.length < 9) {
-            setShowMore(false);
-          }
-          // Calculate total stats
+          setTotalPosts(data.totalPosts || 0);
+          setTotalPages(Math.ceil((data.totalPosts || 0) / postsPerPage));
+          
+          // Calculate stats for current page
           const calculatedStats = data.posts.reduce((acc, post) => {
             return {
               totalViews: acc.totalViews + (post.views || 0),
@@ -57,10 +65,8 @@ export default function DashPosts() {
       }
     };
 
-    if (currentUser.isAdmin) {
-      fetchPosts();
-    }
-  }, [currentUser._id]);
+    fetchPosts();
+  }, [currentUser._id, currentPage]);
 
   const handleDeletePost = async () => {
     setLoading(prev => ({ ...prev, delete: true }));
@@ -75,7 +81,14 @@ export default function DashPosts() {
       
       if (res.ok) {
         setPosts(prev => prev.filter(post => post._id !== postIdToDelete));
+        setTotalPosts(prev => prev - 1);
+        setTotalPages(Math.ceil((totalPosts - 1) / postsPerPage));
         setShowModal(false);
+        
+        // If current page becomes empty and it's not the first page, go to previous page
+        if (posts.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        }
       } else {
         setError(data.message || 'Failed to delete post');
       }
@@ -86,25 +99,112 @@ export default function DashPosts() {
     }
   };
 
-  const handleShowMore = async () => {
-    const startIndex = posts.length;
-    setLoading(prev => ({ ...prev, posts: true }));
-    try {
-      const res = await fetch(`/api/post/getposts?startIndex=${startIndex}&limit=9`);
-      const data = await res.json();
-      if (res.ok) {
-        setPosts(prev => [...prev, ...data.posts]);
-        if (data.posts.length < 9) {
-          setShowMore(false);
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const generatePageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
         }
       } else {
-        setError(data.message || 'Failed to load more posts');
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
       }
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(prev => ({ ...prev, posts: false }));
     }
+    
+    return pages;
+  };
+
+  const PaginationComponent = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-between mt-6">
+        <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+          <span>
+            Showing {((currentPage - 1) * postsPerPage) + 1} to {Math.min(currentPage * postsPerPage, totalPosts)} of {totalPosts} posts
+          </span>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+            className={`flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white ${
+              currentPage === 1 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+            }`}
+          >
+            <FaChevronLeft className="w-3 h-3 mr-1" />
+            Previous
+          </button>
+
+          <div className="flex space-x-1">
+            {generatePageNumbers().map((page, index) => (
+              <button
+                key={index}
+                onClick={() => typeof page === 'number' && handlePageChange(page)}
+                disabled={page === '...'}
+                className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                  page === currentPage
+                    ? 'text-blue-600 bg-blue-50 border border-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white'
+                    : page === '...'
+                    ? 'text-gray-500 cursor-default'
+                    : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+            className={`flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white ${
+              currentPage === totalPages ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+            }`}
+          >
+            Next
+            <FaChevronRight className="w-3 h-3 ml-1" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   if (!currentUser.isAdmin) {
@@ -126,11 +226,20 @@ export default function DashPosts() {
       )}
 
       {/* Stats Overview */}
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+      <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
         <div className='bg-white dark:bg-gray-800 p-4 rounded-lg shadow'>
           <div className='flex items-center justify-between'>
             <div>
-              <p className='text-gray-500 dark:text-gray-400'>Total Views</p>
+              <p className='text-gray-500 dark:text-gray-400'>Total Posts</p>
+              <p className='text-2xl font-semibold'>{totalPosts}</p>
+            </div>
+            <FaChartLine className='text-indigo-500 text-2xl' />
+          </div>
+        </div>
+        <div className='bg-white dark:bg-gray-800 p-4 rounded-lg shadow'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-gray-500 dark:text-gray-400'>Page Views</p>
               <p className='text-2xl font-semibold'>{stats.totalViews}</p>
             </div>
             <FaEye className='text-blue-500 text-2xl' />
@@ -139,7 +248,7 @@ export default function DashPosts() {
         <div className='bg-white dark:bg-gray-800 p-4 rounded-lg shadow'>
           <div className='flex items-center justify-between'>
             <div>
-              <p className='text-gray-500 dark:text-gray-400'>Total Comments</p>
+              <p className='text-gray-500 dark:text-gray-400'>Page Comments</p>
               <p className='text-2xl font-semibold'>{stats.totalComments}</p>
             </div>
             <FaChartLine className='text-green-500 text-2xl' />
@@ -148,7 +257,7 @@ export default function DashPosts() {
         <div className='bg-white dark:bg-gray-800 p-4 rounded-lg shadow'>
           <div className='flex items-center justify-between'>
             <div>
-              <p className='text-gray-500 dark:text-gray-400'>Total Likes</p>
+              <p className='text-gray-500 dark:text-gray-400'>Page Likes</p>
               <p className='text-2xl font-semibold'>{stats.totalLikes}</p>
             </div>
             <FaChartLine className='text-purple-500 text-2xl' />
@@ -181,7 +290,7 @@ export default function DashPosts() {
                   <Table.Cell>
                     <div className='flex items-center gap-3'>
                       <img
-                        src={post.image }
+                        src={post.image}
                         alt={post.title}
                         className='w-16 h-10 object-cover rounded'
                         onError={(e) => {
@@ -245,21 +354,12 @@ export default function DashPosts() {
             </Table.Body>
           </Table>
 
-          {showMore && (
-            <button
-              onClick={handleShowMore}
-              disabled={loading.posts}
-              className='w-full text-teal-500 self-center text-sm py-7 flex items-center justify-center gap-2'
-            >
-              {loading.posts ? (
-                <>
-                  <Spinner size='sm' />
-                  Loading...
-                </>
-              ) : (
-                'Show More'
-              )}
-            </button>
+          <PaginationComponent />
+
+          {loading.posts && (
+            <div className="flex justify-center items-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+            </div>
           )}
         </>
       ) : (

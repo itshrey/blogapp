@@ -20,6 +20,7 @@ export default function Oauth() {
     setError(null);
     
     const provider = new GoogleAuthProvider();
+    provider.addScope('email');
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
@@ -33,7 +34,7 @@ export default function Oauth() {
         },
         body: JSON.stringify({
           name: results.user.displayName,
-          email: results.user.email,
+          email: results.user.email || results.user.providerData?.[0]?.email,
           googlePhotoUrl: results.user.photoURL,
         }),
       });

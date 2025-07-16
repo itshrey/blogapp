@@ -2,7 +2,7 @@ import { Modal, Table, Button, Badge, Spinner, Tooltip } from 'flowbite-react';
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { HiOutlineExclamationCircle } from 'react-icons/hi';
+import { HiOutlineExclamationCircle, HiChevronLeft, HiChevronRight } from 'react-icons/hi';
 import { FaThumbsUp, FaUser, FaFileAlt } from 'react-icons/fa';
 import moment from 'moment';
 
@@ -10,38 +10,45 @@ export default function DashComments() {
   const { currentUser } = useSelector((state) => state.user);
   const [comments, setComments] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [showMore, setShowMore] = useState(true);
   const [commentIdToDelete, setCommentIdToDelete] = useState('');
   const [loading, setLoading] = useState({
     comments: false,
     delete: false
   });
   const [error, setError] = useState(null);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalComments, setTotalComments] = useState(0);
+  const [commentsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+
+  const fetchComments = async (page = 1) => {
+    setLoading(prev => ({ ...prev, comments: true }));
+    setError(null);
+    try {
+      const startIndex = (page - 1) * commentsPerPage;
+      const res = await fetch(`/api/comment/?startIndex=${startIndex}&limit=${commentsPerPage}&populate=user,post`);
+      const data = await res.json();
+      
+      if (res.ok) {
+        setComments(data.comments);
+        setTotalComments(data.totalComments || 0);
+        setTotalPages(Math.ceil((data.totalComments || 0) / commentsPerPage));
+        setCurrentPage(page);
+      } else {
+        setError(data.message || 'Failed to fetch comments');
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(prev => ({ ...prev, comments: false }));
+    }
+  };
 
   useEffect(() => {
-    const fetchComments = async () => {
-      setLoading(prev => ({ ...prev, comments: true }));
-      setError(null);
-      try {
-        const res = await fetch('/api/comment/?limit=9&populate=user,post');
-        const data = await res.json();
-        if (res.ok) {
-          setComments(data.comments);
-          if (data.comments.length < 9) {
-            setShowMore(false);
-          }
-        } else {
-          setError(data.message || 'Failed to fetch comments');
-        }
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setLoading(prev => ({ ...prev, comments: false }));
-      }
-    };
-
     if (currentUser.isAdmin) {
-      fetchComments();
+      fetchComments(1);
     }
   }, [currentUser._id]);
 
@@ -59,6 +66,14 @@ export default function DashComments() {
       if (res.ok) {
         setComments(prev => prev.filter(comment => comment._id !== commentIdToDelete));
         setShowModal(false);
+        
+        // Refresh current page or go to previous page if current page becomes empty
+        const remainingComments = comments.length - 1;
+        if (remainingComments === 0 && currentPage > 1) {
+          fetchComments(currentPage - 1);
+        } else {
+          fetchComments(currentPage);
+        }
       } else {
         setError(data.message || 'Failed to delete comment');
       }
@@ -69,25 +84,108 @@ export default function DashComments() {
     }
   };
 
-  const handleShowMore = async () => {
-    const startIndex = comments.length;
-    setLoading(prev => ({ ...prev, comments: true }));
-    try {
-      const res = await fetch(`/api/comment/?startIndex=${startIndex}&limit=9&populate=user,post`);
-      const data = await res.json();
-      if (res.ok) {
-        setComments(prev => [...prev, ...data.comments]);
-        if (data.comments.length < 9) {
-          setShowMore(false);
-        }
-      } else {
-        setError(data.message || 'Failed to load more comments');
-      }
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(prev => ({ ...prev, comments: false }));
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      fetchComments(page);
     }
+  };
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+    
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-between mt-6">
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          Showing {((currentPage - 1) * commentsPerPage) + 1} to {Math.min(currentPage * commentsPerPage, totalComments)} of {totalComments} comments
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {/* Previous Button */}
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1 || loading.comments}
+            className={`px-3 py-1 rounded-md text-sm font-medium ${
+              currentPage === 1 || loading.comments
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-600'
+            }`}
+          >
+            <HiChevronLeft className="w-4 h-4" />
+          </button>
+
+          {/* First page */}
+          {startPage > 1 && (
+            <>
+              <button
+                onClick={() => handlePageChange(1)}
+                disabled={loading.comments}
+                className="px-3 py-1 rounded-md text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-600"
+              >
+                1
+              </button>
+              {startPage > 2 && <span className="text-gray-500">...</span>}
+            </>
+          )}
+
+          {/* Page numbers */}
+          {pageNumbers.map((page) => (
+            <button
+              key={page}
+              onClick={() => handlePageChange(page)}
+              disabled={loading.comments}
+              className={`px-3 py-1 rounded-md text-sm font-medium ${
+                page === currentPage
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-600'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+
+          {/* Last page */}
+          {endPage < totalPages && (
+            <>
+              {endPage < totalPages - 1 && <span className="text-gray-500">...</span>}
+              <button
+                onClick={() => handlePageChange(totalPages)}
+                disabled={loading.comments}
+                className="px-3 py-1 rounded-md text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-600"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+
+          {/* Next Button */}
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || loading.comments}
+            className={`px-3 py-1 rounded-md text-sm font-medium ${
+              currentPage === totalPages || loading.comments
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-600'
+            }`}
+          >
+            <HiChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   if (!currentUser.isAdmin) {
@@ -192,22 +290,8 @@ export default function DashComments() {
             </Table.Body>
           </Table>
 
-          {showMore && (
-            <button
-              onClick={handleShowMore}
-              disabled={loading.comments}
-              className='w-full text-teal-500 self-center text-sm py-7 flex items-center justify-center gap-2'
-            >
-              {loading.comments ? (
-                <>
-                  <Spinner size='sm' />
-                  Loading...
-                </>
-              ) : (
-                'Show More'
-              )}
-            </button>
-          )}
+          {/* Pagination Component */}
+          {renderPagination()}
         </>
       ) : (
         <p className='text-center text-gray-600 dark:text-gray-400 py-10'>
