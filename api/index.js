@@ -10,8 +10,10 @@ import postRoutes from './routes/post.route.js';
 import commentRoutes from './routes/comment.route.js';
 import { verifyToken,adminOnly } from './middleware/auth.middleware.js';
 import aiRoutes from './routes/ai.route.js';
-
+import path from 'path';
 dotenv.config();
+
+console.log("Environment Variables:",process.env.MONGO)
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO)
@@ -19,7 +21,7 @@ mongoose.connect(process.env.MONGO)
   .catch((err) => console.log("MongoDB Connection Error:", err));
 
 const app = express();
-
+const _dirname = path.resolve();
 // Enable CORS (Allow frontend requests)
 app.use(cors({
   origin: "http://localhost:5173", // Your frontend URL
@@ -84,6 +86,8 @@ app.get('/api/getUsers', verifyToken, adminOnly, async (req, res) => {
     });
   }
 });
+
+
 app.use('/api/ai', aiRoutes);
 
 
@@ -97,7 +101,8 @@ app.use((err, req, res, next) => {
     message,
   });
 });
-
+app.use(express.static(path.join(_dirname, '/Client/dist')));
+app.get('*', (req, res) => {res.sendFile(path.join(_dirname, '/Client/dist/index.html'));});
 // Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
