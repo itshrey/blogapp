@@ -91,6 +91,7 @@ export default function PostPage() {
         };
         fetchPost();
     }, [postSlug, navigate, currentUser]);
+    
     const fetchSummary = async () => {
         try {
             setSummarizing(true);
@@ -154,6 +155,18 @@ export default function PostPage() {
         return Math.ceil(words.length / 200);
     };
 
+    // Helper function to get author display name
+    const getAuthorName = () => {
+        if (!post) return 'Unknown Author';
+        if (!post.userId) return 'Deleted User';
+        return post.userId.username || 'Unknown Author';
+    };
+
+    // Helper function to check if author is deleted
+    const isAuthorDeleted = () => {
+        return !post?.userId;
+    };
+
     if (loading) {
         return (
             <div className='flex justify-center items-center min-h-screen'>
@@ -209,7 +222,14 @@ export default function PostPage() {
                 <div className='flex flex-wrap justify-center items-center gap-4 text-sm text-gray-500 dark:text-gray-400'>
                     <div className='flex items-center gap-1'>
                         <HiOutlineUser className='text-sm' />
-                        <span>{post.userId.username}</span>
+                        <span className={isAuthorDeleted() ? 'text-red-400 dark:text-red-500' : ''}>
+                            {getAuthorName()}
+                        </span>
+                        {isAuthorDeleted() && (
+                            <Badge color='failure' size='sm' className='ml-1'>
+                                Deleted
+                            </Badge>
+                        )}
                     </div>
                     <div className='flex items-center gap-1'>
                         <HiOutlineCalendar className='text-sm' />
@@ -220,24 +240,24 @@ export default function PostPage() {
                         <span>{calculateReadTime(post.content)} min read</span>
                     </div>
                     <div className="flex items-center gap-1" data-testid="like-section">
-  <Tooltip content={liked ? 'Remove like' : 'Like this post'}>
-    <button 
-      onClick={toggleLike} 
-      className={`like-btn ${liked ? 'liked' : ''}`}
-      data-testid="like-button"
-      aria-label={liked ? 'Unlike post' : 'Like post'}
-    >
-      {liked ? (
-        <FaHeart className="heart-icon" data-testid="heart-filled" />
-      ) : (
-        <FaRegHeart className="heart-icon" data-testid="heart-outline" />
-      )}
-    </button>
-  </Tooltip>
-  <span className="like-count" data-testid="like-count">
-    {likes} {likes === 1 ? 'Like' : 'Likes'}
-  </span>
-</div>
+                        <Tooltip content={liked ? 'Remove like' : 'Like this post'}>
+                            <button 
+                                onClick={toggleLike} 
+                                className={`like-btn ${liked ? 'liked' : ''}`}
+                                data-testid="like-button"
+                                aria-label={liked ? 'Unlike post' : 'Like post'}
+                            >
+                                {liked ? (
+                                    <FaHeart className="heart-icon" data-testid="heart-filled" />
+                                ) : (
+                                    <FaRegHeart className="heart-icon" data-testid="heart-outline" />
+                                )}
+                            </button>
+                        </Tooltip>
+                        <span className="like-count" data-testid="like-count">
+                            {likes} {likes === 1 ? 'Like' : 'Likes'}
+                        </span>
+                    </div>
                 </div>
             </div>
 
