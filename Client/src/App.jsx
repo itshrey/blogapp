@@ -29,7 +29,6 @@ export default function App() {
     <Provider store={store}>
       <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
         <BrowserRouter>
-          <Top />
           <Header />
           <Routes>
             {/* Public Routes */}
