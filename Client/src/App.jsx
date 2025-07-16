@@ -5,8 +5,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './redux/store';
 import './index.css';
 
-// Components
-import ScrollToTop from './components/ScrollToTop';
+
 import Header from './components/Header';
 import FooterCom from './components/Footer';
 import PrivateRoute from './components/PrivateRoute';
@@ -30,7 +29,7 @@ export default function App() {
     <Provider store={store}>
       <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
         <BrowserRouter>
-          <ScrollToTop />
+          <Top />
           <Header />
           <Routes>
             {/* Public Routes */}
