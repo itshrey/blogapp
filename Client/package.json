@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.7",
+    "blogss": "file:..",
     "firebase": "^10.13.0",
     "flowbite-react": "^0.7.0",
     "moment": "^2.30.1",

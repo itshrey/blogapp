@@ -4,8 +4,8 @@ import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './redux/store';
 import './index.css';
-
-
+import { useSelector } from 'react-redux';
+import { useEffect } from 'react';
 import Header from './components/Header';
 import FooterCom from './components/Footer';
 import PrivateRoute from './components/PrivateRoute';
@@ -25,6 +25,16 @@ import About from './pages/About';
 import Search from './pages/Search';
 
 export default function App() {
+  const theme = useSelector((state) => state.theme.theme); // 'light' or 'dark'
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
   return (
     <Provider store={store}>
       <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
