@@ -12,8 +12,6 @@ import { verifyToken,adminOnly } from './middleware/auth.middleware.js';
 import aiRoutes from './routes/ai.route.js';
 import path from 'path';
 dotenv.config();
-
-
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO)
   .then(() => console.log("MongoDB Connected"))

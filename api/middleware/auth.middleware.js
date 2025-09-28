@@ -8,7 +8,10 @@ export const verifyToken = (req, res, next) => {
     const token = req.cookies.access_token || req.headers.authorization?.split(' ')[1];
     console.log("Token:", token);
     
+
+    
     if (!token) {
+
       return next(errorHandler(401, "Authentication required"));
     }
 

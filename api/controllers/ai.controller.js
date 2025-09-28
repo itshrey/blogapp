@@ -5,6 +5,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// Helper function to get the model
+const getModel = () => {
+  return genAI.getGenerativeModel({
+    model: 'models/gemini-2.0-flash' // Updated to supported Gemini 2.0 Flash model
+  });
+};
+
+// Improve blog content
 export const improveBlog = async (req, res) => {
   const { content } = req.body;
 
@@ -13,10 +21,7 @@ export const improveBlog = async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'models/gemini-1.5-flash-latest'
-    });
-    
+    const model = getModel();
 
     const result = await model.generateContent({
       contents: [
@@ -24,7 +29,7 @@ export const improveBlog = async (req, res) => {
           role: 'user',
           parts: [
             {
-              text: `Please improve the grammar, structure, and flow of the following blog content and give atleast 50 words:\n\n${content}`
+              text: `Please improve the grammar, structure, and flow of the following blog content and provide at least 50 words:\n\n${content}`
             }
           ]
         }
@@ -47,7 +52,7 @@ export const improveBlog = async (req, res) => {
   }
 };
 
-
+// Generate engaging blog title
 export const generateTitle = async (req, res) => {
   const { content } = req.body;
 
@@ -56,9 +61,7 @@ export const generateTitle = async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'models/gemini-1.5-flash-latest'
-    });
+    const model = getModel();
 
     const result = await model.generateContent({
       contents: [
@@ -89,38 +92,42 @@ export const generateTitle = async (req, res) => {
   }
 };
 
-
-
+// Summarize blog content
 export const summarizeBlog = async (req, res) => {
-  try {
-    const { content } = req.body;
+  const { content } = req.body;
 
-    if (!content) {
-      return res.status(400).json({
-        success: false,
-        message: "No content provided for summarization."
-      });
-    }
-
-    const model = genAI.getGenerativeModel({
-      model: "models/gemini-1.5-flash-latest" // or gemini-1.5-pro-latest if quota allows
+  if (!content) {
+    return res.status(400).json({
+      success: false,
+      message: "No content provided for summarization."
     });
+  }
+
+  try {
+    const model = getModel();
 
     const prompt = `
       Summarize the following blog content in 2-3 concise sentences for readers:
-      
       "${content}"
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const summary = await response.text();
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt }
+          ]
+        }
+      ]
+    });
+
+    const summary = result.response.text();
 
     res.status(200).json({
       success: true,
       summary
     });
-
   } catch (error) {
     console.error("Gemini Error:", error);
     res.status(500).json({
